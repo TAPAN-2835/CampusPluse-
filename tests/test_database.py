@@ -10,6 +10,7 @@ from database import (
     get_all_complaints,
     get_complaint_by_id,
     update_complaint_status,
+    delete_complaint,
     get_summary_statistics,
     generate_complaint_id,
 )
@@ -37,6 +38,9 @@ def test_insert_and_retrieve_complaint():
         priority_score=65,
         priority_level="High",
         location="Lab 3",
+        genuineness_score=85,
+        genuineness_verdict="GENUINE",
+        genuineness_flags=["Verified vocabulary"],
         db_path=TEST_DB,
     )
     assert cid.startswith("CP-")
@@ -45,6 +49,9 @@ def test_insert_and_retrieve_complaint():
     assert item["title"] == "Test Wi-Fi Issue"
     assert item["category"] == "Technical"
     assert item["status"] == "Pending"
+    assert item["genuineness_score"] == 85
+    assert item["genuineness_verdict"] == "GENUINE"
+    assert "Verified vocabulary" in item["genuineness_flags"]
 
 
 def test_status_update_and_summary_stats():
@@ -78,6 +85,32 @@ def test_status_update_and_summary_stats():
     assert stats3["resolved"] == 1
     assert stats3["urgent_open"] == 0
     assert stats3["resolution_rate"] == 100.0
+
+
+def test_spam_quarantine_and_delete():
+    init_db(TEST_DB)
+    cid = insert_complaint(
+        title="Spam Test",
+        description="asdfghjkl qwertyuiop",
+        category="Technical",
+        sentiment_label="Neutral",
+        sentiment_score=0.0,
+        priority_score=10,
+        priority_level="Low",
+        status="Spam/Blocked",
+        genuineness_score=15,
+        genuineness_verdict="SPAM_REJECTED",
+        genuineness_flags=["Keyboard row sequence detected"],
+        db_path=TEST_DB,
+    )
+    stats = get_summary_statistics(TEST_DB)
+    assert stats["spam_blocked"] == 1
+    assert stats["active_open"] == 0
+
+    # Delete spam
+    deleted = delete_complaint(cid, db_path=TEST_DB)
+    assert deleted is True
+    assert get_complaint_by_id(cid, db_path=TEST_DB) is None
 
 
 def test_sequential_id_generation():

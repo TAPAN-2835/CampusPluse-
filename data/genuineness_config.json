@@ -1,0 +1,59 @@
+{
+  "_comment": "Genuineness scoring configuration for CampusPulse complaint validation engine.",
+  "_note": "Edit this file to adjust thresholds and keyword lists without touching genuineness.py.",
+
+  "thresholds": {
+    "min_chars": 15,
+    "min_meaningful_tokens": 3,
+    "min_char_diversity_ratio": 0.35,
+    "min_dictionary_word_ratio": 0.40,
+    "classifier_confidence_floor": 0.25,
+    "max_word_repetition_ratio": 0.60,
+    "verdict_genuine_floor": 60,
+    "verdict_review_floor": 35
+  },
+
+  "spam_patterns": [
+    "test", "testing", "hello", "hi", "hey", "lorem ipsum", "sample",
+    "abcd", "xyz", "asdf", "qwerty", "1234", "dummy", "placeholder",
+    "foo bar", "blah", "bla bla", "random", "na", "n/a", "nothing",
+    "idk", "idc", "whatever", "ok ok", "lol", "haha", "hehe"
+  ],
+
+  "threat_keywords": [
+    "i will kill", "you are dead", "bomb", "i know where you live",
+    "ill find you", "i will hurt", "i will destroy", "you will pay",
+    "going to attack", "bring a weapon", "threaten", "blackmail"
+  ],
+
+  "profanity_keywords": [
+    "fuck", "shit", "bastard", "bitch", "asshole", "damn you",
+    "motherfucker", "idiot admin", "stupid staff", "useless staff",
+    "crap", "bullshit", "wtf", "screw you", "go to hell"
+  ],
+
+  "campus_relevance_keywords": [
+    "wifi", "water", "electricity", "lights", "lab", "library",
+    "hostel", "mess", "canteen", "cafeteria", "classroom", "toilet",
+    "washroom", "ac", "fan", "projector", "exam", "fee", "portal",
+    "internet", "server", "network", "printer", "elevator", "lift",
+    "parking", "road", "campus", "department", "professor", "teacher",
+    "timetable", "schedule", "attendance", "marks", "grade", "result",
+    "assignment", "submission", "deadline", "room", "floor", "block",
+    "computer", "software", "hardware", "geyser", "heater", "pipe",
+    "leaking", "broken", "repair", "maintenance", "security", "gate"
+  ],
+
+  "scoring_weights": {
+    "length_ok":              15,
+    "char_diversity_ok":      10,
+    "dictionary_words_ok":    15,
+    "campus_relevance":       20,
+    "classifier_confidence":  15,
+    "no_repetition":          10,
+    "no_spam_pattern":        10,
+    "no_profanity_penalty":  -30,
+    "threat_penalty":        -60,
+    "spam_pattern_penalty":  -25
+  }
+}

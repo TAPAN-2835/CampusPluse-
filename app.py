@@ -1,10 +1,11 @@
 """
 CampusPulse - Explainable NLP-Based Campus Complaint Intelligence System
 Interactive Streamlit Application featuring:
-1. Executive Dashboard (KPIs, Plotly Analytics, Duplicate Clusters)
-2. Submit Complaint (Real-time classification, Sentiment, Priority, Similar Ticket Matcher)
-3. Complaint Explorer (Search, Category/Status/Priority Filters, Status Updates)
+1. Executive Dashboard (KPIs, Plotly Analytics, Duplicate Clusters, Filtered Mischief Tracker)
+2. Submit Complaint (Real-time classification, Sentiment, Priority, Similar Ticket Matcher, Anti-Mischief Gate)
+3. Complaint Explorer (Active Queue & Blocked Spam Quarantine, Search, Filters, Lifecycle & Unblock Actions)
 4. Model Evaluation & Explainability (Genuine Test Metrics, Baseline Comparison, Confusion Matrix, Top TF-IDF Terms)
+5. Admin Config Studio (Live visual editor for campus abbreviations, priority keywords, and genuineness rules)
 """
 
 import json
@@ -17,6 +18,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from database import (
+    delete_complaint,
     get_all_complaints,
     get_complaint_by_id,
     get_summary_statistics,
@@ -30,6 +32,7 @@ from evaluation import (
     get_per_class_table,
     load_eval_metrics,
 )
+from genuineness import evaluate_genuineness, load_genuineness_config
 from preprocessing import clean_text, explain_preprocessing
 from priority import analyze_sentiment, calculate_priority
 from similarity import ComplaintSimilarityEngine
@@ -107,6 +110,11 @@ CUSTOM_CSS = """
     .badge-progress { background-color: #e0f2fe; color: #0369a1; }
     .badge-review { background-color: #fef3c7; color: #b45309; }
     .badge-resolved { background-color: #dcfce7; color: #15803d; }
+    .badge-blocked { background-color: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+
+    .badge-genuine { background-color: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+    .badge-needs_review { background-color: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+    .badge-spam_rejected { background-color: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
 
     /* Similarity Alert Card */
     .dup-alert {
@@ -175,6 +183,7 @@ with st.sidebar:
             "📝 Submit & Triage Complaint",
             "🔍 Complaint Explorer",
             "📈 Model Evaluation & Explainability",
+            "⚙️ Admin Config Studio",
         ],
         index=0,
     )
@@ -192,7 +201,7 @@ with st.sidebar:
     st.markdown(
         "<div style='font-size: 0.75rem; color: #94a3b8; line-height: 1.4;'>"
         "<strong>NLP Minor Project</strong><br>"
-        "Supervised Text Classification • TF-IDF Cosine Similarity • VADER Sentiment • Rule-Based Urgency Engine"
+        "Supervised Text Classification • TF-IDF Cosine Similarity • VADER Sentiment • Genuineness & Anti-Mischief Gate • Rule-Based Urgency Engine"
         "</div>",
         unsafe_allow_html=True,
     )
@@ -211,15 +220,15 @@ if nav_choice == "📊 Executive Dashboard":
     stats = get_summary_statistics()
     complaints_df = get_all_complaints()
 
-    # Top KPI Metrics Row
-    c1, c2, c3, c4, c5 = st.columns(5)
+    # Top KPI Metrics Row (6 cards)
+    c1, c2, c3, c4, c5, c6 = st.columns(6)
     with c1:
         st.markdown(
             f"""
             <div class="metric-card">
-                <div class="metric-title">Total Complaints</div>
+                <div class="metric-title">Total Submitted</div>
                 <div class="metric-value">{stats['total']}</div>
-                <div class="metric-sub">Logged in CampusPulse</div>
+                <div class="metric-sub">{stats['genuine_total']} genuine tickets</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -230,7 +239,7 @@ if nav_choice == "📊 Executive Dashboard":
             <div class="metric-card">
                 <div class="metric-title">Pending Action</div>
                 <div class="metric-value" style="color: #ea580c;">{stats['pending']}</div>
-                <div class="metric-sub" style="color: #ea580c;">Awaiting triage/assignment</div>
+                <div class="metric-sub" style="color: #ea580c;">Awaiting triage</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -268,23 +277,37 @@ if nav_choice == "📊 Executive Dashboard":
             """,
             unsafe_allow_html=True,
         )
+    with c6:
+        st.markdown(
+            f"""
+            <div class="metric-card">
+                <div class="metric-title">Filtered Mischief</div>
+                <div class="metric-value" style="color: #9333ea;">{stats['spam_blocked']}</div>
+                <div class="metric-sub" style="color: #9333ea;">Quarantined spam/trolls</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
     st.markdown("<br>", unsafe_allow_html=True)
 
     if complaints_df.empty:
         st.info("No complaints found in local database. Submit a complaint or run prepare_data.py to seed historical records.")
     else:
+        # Separate active/genuine from blocked submissions
+        active_df = complaints_df[complaints_df["status"] != "Spam/Blocked"]
+
         # Charts Row 1: Category Distribution & Priority Level
         ch1, ch2 = st.columns(2)
         with ch1:
-            cat_counts = complaints_df["category"].value_counts().reset_index()
+            cat_counts = (active_df["category"].value_counts() if not active_df.empty else complaints_df["category"].value_counts()).reset_index()
             cat_counts.columns = ["Category", "Count"]
             fig_cat = px.pie(
                 cat_counts,
                 values="Count",
                 names="Category",
                 hole=0.45,
-                title="Complaints by Category",
+                title="Verified Complaints by Category",
                 color_discrete_sequence=px.colors.qualitative.Safe,
             )
             fig_cat.update_layout(margin=dict(l=20, r=20, t=40, b=20), height=340)
@@ -292,14 +315,14 @@ if nav_choice == "📊 Executive Dashboard":
 
         with ch2:
             prio_order = ["Low", "Medium", "High", "Critical"]
-            prio_counts = complaints_df["priority_level"].value_counts().reindex(prio_order).fillna(0).reset_index()
+            prio_counts = (active_df["priority_level"].value_counts() if not active_df.empty else complaints_df["priority_level"].value_counts()).reindex(prio_order).fillna(0).reset_index()
             prio_counts.columns = ["Priority", "Count"]
             colors = {"Low": "#10b981", "Medium": "#f59e0b", "High": "#ea580c", "Critical": "#dc2626"}
             fig_prio = px.bar(
                 prio_counts,
                 x="Priority",
                 y="Count",
-                title="Priority Level Triage Distribution",
+                title="Priority Level Triage Distribution (Active Queue)",
                 color="Priority",
                 color_discrete_map=colors,
                 text="Count",
@@ -314,32 +337,34 @@ if nav_choice == "📊 Executive Dashboard":
             "Helps administrators identify systemic campus problems before they escalate."
         )
 
-        cluster_counts = complaints_df["duplicate_cluster_id"].dropna().value_counts()
+        cluster_counts = active_df["duplicate_cluster_id"].dropna().value_counts() if not active_df.empty else pd.Series(dtype=int)
         recurring_clusters = cluster_counts[cluster_counts >= 2]
 
         if not recurring_clusters.empty:
             cluster_rows = []
             for cid, count in recurring_clusters.head(6).items():
-                items = complaints_df[complaints_df["duplicate_cluster_id"] == cid]
-                sample_title = items.iloc[0]["title"]
-                cat = items.iloc[0]["category"]
-                loc = items.iloc[0]["location"]
-                open_count = len(items[items["status"] != "Resolved"])
-                cluster_rows.append({
-                    "Cluster ID": cid,
-                    "Representative Issue": sample_title,
-                    "Category": cat,
-                    "Primary Location": loc,
-                    "Total Reports": count,
-                    "Unresolved": open_count,
-                })
+                items = active_df[active_df["duplicate_cluster_id"] == cid]
+                if not items.empty:
+                    sample_title = items.iloc[0]["title"]
+                    cat = items.iloc[0]["category"]
+                    loc = items.iloc[0]["location"]
+                    open_count = len(items[items["status"] != "Resolved"])
+                    cluster_rows.append({
+                        "Cluster ID": cid,
+                        "Representative Issue": sample_title,
+                        "Category": cat,
+                        "Primary Location": loc,
+                        "Total Reports": count,
+                        "Unresolved": open_count,
+                    })
             cluster_table = pd.DataFrame(cluster_rows)
             st.dataframe(cluster_table, use_container_width=True, hide_index=True)
         else:
-            st.caption("No multi-ticket duplicate clusters currently detected.")
+            st.caption("No multi-ticket duplicate clusters currently detected in active queue.")
 
-        st.markdown("### 🕒 Recent Complaint Submissions")
-        recent_display = complaints_df[["complaint_id", "title", "category", "location", "priority_level", "status", "submitted_at"]].head(8)
+        st.markdown("### 🕒 Recent Verified Complaint Submissions")
+        recent_df = active_df if not active_df.empty else complaints_df
+        recent_display = recent_df[["complaint_id", "title", "category", "location", "priority_level", "status", "submitted_at"]].head(8)
         st.dataframe(recent_display, use_container_width=True, hide_index=True)
 
 
@@ -350,26 +375,42 @@ elif nav_choice == "📝 Submit & Triage Complaint":
     st.title("📝 Submit and Triage Student Complaint")
     st.markdown(
         "Submit a campus issue to trigger real-time **TF-IDF Multiclass Classification**, "
-        "**VADER Sentiment Estimation**, **Explainable Priority Scoring**, and **Cosine Similarity Duplicate Detection**."
+        "**VADER Sentiment Estimation**, **Anti-Mischief & Genuineness Validation**, **Explainable Priority Scoring**, and **Cosine Similarity Duplicate Detection**."
     )
 
     # Demo Presets / Quick fill
-    st.markdown("#### ⚡ 1-Click Faculty Demo Samples")
-    preset_cols = st.columns(4)
-    demo_samples = [
-        ("⚡ Electrical Spark Hazard", "Switchboard in room 204 is throwing violent sparks and smoke. High risk of electric shock!", "Electrical Dept", "Critical"),
-        ("📶 Wi-Fi Portal Loop", "Campus Wi-Fi captive portal disconnects constantly on 8th and 9th floor. Cannot load assignment.", "IT / 8th Floor", "High"),
-        ("💧 Water Contamination", "Drinking water cooler on 6th floor dispensing yellowish dirty water with foul odor. Students falling sick.", "CSE 6th Floor", "Critical"),
-        ("📚 Internal Marks Discrepancy", "Continuous assessment marks for CS301 recorded wrongly as 12 instead of 24 on student portal.", "CSE Academic Desk", "High"),
-    ]
+    st.markdown("#### ⚡ 1-Click Interactive Demo Samples")
+    p_tab_genuine, p_tab_mischief = st.tabs(["✅ Genuine Complaints", "🧪 Mischief & Threat Tests"])
 
-    selected_sample = None
-    for i, (btn_label, desc_text, loc_text, _) in enumerate(demo_samples):
-        with preset_cols[i]:
-            if st.button(btn_label, key=f"demo_btn_{i}", use_container_width=True):
-                st.session_state["f_desc"] = desc_text
-                st.session_state["f_loc"] = loc_text
-                st.session_state["f_title"] = desc_text[:50] + "..."
+    with p_tab_genuine:
+        preset_cols = st.columns(4)
+        genuine_samples = [
+            ("⚡ Electrical Spark Hazard", "Switchboard in room 204 is throwing violent sparks and smoke. High risk of electric shock!", "Electrical Dept"),
+            ("📶 Wi-Fi Portal Loop", "Campus Wi-Fi captive portal disconnects constantly on 8th and 9th floor. Cannot load assignment.", "IT / 8th Floor"),
+            ("💧 Water Contamination", "Drinking water cooler on 6th floor dispensing yellowish dirty water with foul odor. Students falling sick.", "CSE 6th Floor"),
+            ("📚 Internal Marks Discrepancy", "Continuous assessment marks for CS301 recorded wrongly as 12 instead of 24 on student portal.", "CSE Academic Desk"),
+        ]
+        for i, (btn_label, desc_text, loc_text) in enumerate(genuine_samples):
+            with preset_cols[i]:
+                if st.button(btn_label, key=f"demo_btn_gen_{i}", use_container_width=True):
+                    st.session_state["f_desc"] = desc_text
+                    st.session_state["f_loc"] = loc_text
+                    st.session_state["f_title"] = desc_text[:50] + "..."
+
+    with p_tab_mischief:
+        mischief_cols = st.columns(4)
+        mischief_samples = [
+            ("⌨️ Keyboard Mashing", "asdfghjkl qwertyuiop zxcvbnm asdfghjkl", "Library"),
+            ("🚫 Dummy Test String", "test testing dummy lorem ipsum placeholder nothing", "Main Gate"),
+            ("🚨 Security Threat", "I will kill the professor if my internal marks are not changed immediately", "Admin Office"),
+            ("🔤 Short Nonsense", "fix it", "Campus"),
+        ]
+        for i, (btn_label, desc_text, loc_text) in enumerate(mischief_samples):
+            with mischief_cols[i]:
+                if st.button(btn_label, key=f"demo_btn_mis_{i}", use_container_width=True):
+                    st.session_state["f_desc"] = desc_text
+                    st.session_state["f_loc"] = loc_text
+                    st.session_state["f_title"] = desc_text[:50] + "..."
 
     f_title = st.text_input(
         "Complaint Title",
@@ -418,6 +459,12 @@ elif nav_choice == "📝 Submit & Triage Complaint":
             pred_cat = "Infrastructure"
             proba_dict = {pred_cat: 0.85}
 
+        # Genuineness & Anti-Mischief Validation
+        gen_res = evaluate_genuineness(
+            text=f_desc,
+            classifier_confidence=max(proba_dict.values()) if proba_dict else None,
+        )
+
         # Sentiment Analysis
         sentiment = analyze_sentiment(f_desc)
 
@@ -441,15 +488,23 @@ elif nav_choice == "📝 Submit & Triage Complaint":
             is_unresolved=True,
         )
 
-        # 4 Summary Insight Columns
-        m1, m2, m3, m4 = st.columns(4)
+        # Prominent Authenticity / Mischief Status Banner
+        if gen_res["verdict"] == "GENUINE":
+            st.success(f"🛡️ **Authenticity Verified: Genuine Student Complaint ({gen_res['score']}/100)** — {gen_res['summary_reason']}")
+        elif gen_res["verdict"] == "NEEDS_REVIEW":
+            st.warning(f"⚠️ **Authenticity Flag: Review Required ({gen_res['score']}/100)** — {gen_res['summary_reason']} | Flags: {', '.join(gen_res['flags'])}")
+        else:
+            st.error(f"🚫 **Mischief / Spam Filter Triggered ({gen_res['score']}/100)** — {gen_res['summary_reason']} | Flags: {', '.join(gen_res['flags'])}")
+
+        # 5 Summary Insight Columns
+        m1, m2, m3, m4, m5 = st.columns(5)
         with m1:
             st.markdown(
                 f"""
                 <div class="metric-card">
                     <div class="metric-title">Predicted Category</div>
-                    <div class="metric-value" style="font-size: 1.4rem; color: #1e3a8a;">{pred_cat}</div>
-                    <div class="metric-sub" style="color: #475569;">Est. Prob: {proba_dict.get(pred_cat, 0.85)*100:.1f}%*</div>
+                    <div class="metric-value" style="font-size: 1.3rem; color: #1e3a8a;">{pred_cat}</div>
+                    <div class="metric-sub" style="color: #475569;">Prob: {proba_dict.get(pred_cat, 0.85)*100:.1f}%*</div>
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -459,8 +514,8 @@ elif nav_choice == "📝 Submit & Triage Complaint":
             st.markdown(
                 f"""
                 <div class="metric-card">
-                    <div class="metric-title">Sentiment Estimation</div>
-                    <div class="metric-value" style="font-size: 1.4rem; color: {sent_color};">{sentiment['label']}</div>
+                    <div class="metric-title">Sentiment</div>
+                    <div class="metric-value" style="font-size: 1.3rem; color: {sent_color};">{sentiment['label']}</div>
                     <div class="metric-sub" style="color: {sent_color};">Compound: {sentiment['compound']:.2f} (VADER)</div>
                 </div>
                 """,
@@ -471,8 +526,8 @@ elif nav_choice == "📝 Submit & Triage Complaint":
             st.markdown(
                 f"""
                 <div class="metric-card">
-                    <div class="metric-title">Recommended Priority</div>
-                    <div class="metric-value" style="font-size: 1.4rem;">{priority['priority_score']} / 100</div>
+                    <div class="metric-title">Urgency Priority</div>
+                    <div class="metric-value" style="font-size: 1.3rem;">{priority['priority_score']} / 100</div>
                     <div class="metric-sub"><span class="badge {prio_badge_cls}">{priority['priority_level']}</span></div>
                 </div>
                 """,
@@ -482,25 +537,39 @@ elif nav_choice == "📝 Submit & Triage Complaint":
             st.markdown(
                 f"""
                 <div class="metric-card">
-                    <div class="metric-title">Similar Complaints</div>
-                    <div class="metric-value" style="font-size: 1.4rem; color: #d97706;">{sim_count} Match{'es' if sim_count != 1 else ''}</div>
+                    <div class="metric-title">Similar Issues</div>
+                    <div class="metric-value" style="font-size: 1.3rem; color: #d97706;">{sim_count} Match{'es' if sim_count != 1 else ''}</div>
                     <div class="metric-sub" style="color: #d97706;">Cutoff: τ ≥ {sim_threshold:.2f}</div>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
+        with m5:
+            gen_badge_cls = f"badge-{gen_res['verdict'].lower()}"
+            verdict_color = "#16a34a" if gen_res["verdict"] == "GENUINE" else ("#d97706" if gen_res["verdict"] == "NEEDS_REVIEW" else "#dc2626")
+            st.markdown(
+                f"""
+                <div class="metric-card">
+                    <div class="metric-title">Authenticity Score</div>
+                    <div class="metric-value" style="font-size: 1.3rem; color: {verdict_color};">{gen_res['score']} / 100</div>
+                    <div class="metric-sub"><span class="badge {gen_badge_cls}">{gen_res['verdict']}</span></div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
-        st.caption("*(Note: Class probabilities are model estimates under TF-IDF feature distributions, not absolute guarantees of real-world circumstances.)")
+        st.caption("*(Note: Class probabilities and authenticity scores are model and rule estimates under TF-IDF & lexical distributions, not physical guarantees.)")
 
-        # Two Detailed Inspection Tabs
-        tab_dup, tab_explain, tab_factors = st.tabs([
+        # 4 Detailed Inspection Tabs
+        tab_dup, tab_explain, tab_factors, tab_genuineness = st.tabs([
             "🔁 Similar Complaints & Duplicate Alert",
             "🔤 Preprocessing & Probability Trace",
             "⚖️ Explainable Priority Factor Breakdown",
+            "🛡️ Genuineness & Anti-Mischief Audit",
         ])
 
         with tab_dup:
-            st.caption("ℹ️ *Notice: Cosine similarity measures lexical n-gram alignment. It provides a similarity estimate, not guaranteed proof of an identical physical incident. Human staff verification is required before merging or closing tickets.*")
+            st.caption("ℹ️ *Notice: Cosine similarity measures lexical n-gram alignment. It provides a similarity estimate, not guaranteed proof of an identical physical incident.*")
             if similar_matches:
                 st.warning(
                     f"⚠️ Found {len(similar_matches)} potentially related or duplicate complaint(s) in the system! "
@@ -559,9 +628,36 @@ elif nav_choice == "📝 Submit & Triage Complaint":
                 "It assists administrators in prioritizing triage queues and does NOT constitute a certified physical safety inspection or emergency alarm system."
             )
 
+        with tab_genuineness:
+            st.markdown("##### 🛡️ Genuineness Validation & Mischief Audit Breakdown")
+            st.markdown(
+                "Evaluates input text against gibberish heuristics, dictionary vocabularies, "
+                "campus operational keywords, and known spam/troll/threat patterns."
+            )
+
+            g_col1, g_col2 = st.columns([1, 2])
+            with g_col1:
+                st.metric("Genuineness Score", f"{gen_res['score']} / 100")
+                st.markdown(f"**Verdict:** <span class='badge {gen_badge_cls}'>{gen_res['verdict']}</span>", unsafe_allow_html=True)
+                st.markdown(f"**Assigned Lifecycle:** `{gen_res['recommended_status']}`")
+                if gen_res["matched_campus_keywords"]:
+                    st.markdown(f"**Campus Context Keywords:**\n`{', '.join(gen_res['matched_campus_keywords'])}`")
+                if gen_res["flags"]:
+                    st.markdown("**Flags Raised:**")
+                    for flag in gen_res["flags"]:
+                        st.markdown(f"- ⚠️ {flag}")
+
+            with g_col2:
+                st.markdown("**Transparent Rule Scoring Factors:**")
+                st.table(pd.DataFrame(gen_res["factors"])[["factor", "points", "passed", "details"]])
+
         # Submit to Database Button
         st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("🚀 Confirm & Submit Ticket to Campus Queue", type="primary", use_container_width=True):
+        btn_label = "🚀 Confirm & Submit Ticket to Campus Queue"
+        if gen_res["verdict"] == "SPAM_REJECTED":
+            btn_label = "⚠️ Submit to Admin Mischief Review Queue (Flagged as Spam)"
+
+        if st.button(btn_label, type="primary" if gen_res["verdict"] != "SPAM_REJECTED" else "secondary", use_container_width=True):
             clean_title = f_title.strip() or f_desc[:55].strip()
             cid = insert_complaint(
                 title=clean_title,
@@ -574,11 +670,27 @@ elif nav_choice == "📝 Submit & Triage Complaint":
                 location=f_loc.strip(),
                 probabilities=proba_dict,
                 priority_factors=[f"{f['factor']}: {f['points']} ({f['reason']})" for f in priority["factors"]],
-                status="Pending",
+                status=gen_res["recommended_status"],
                 duplicate_cluster_id=similar_matches[0]["complaint_id"] if (similar_matches and similar_matches[0]["is_likely_duplicate"]) else None,
+                genuineness_score=gen_res["score"],
+                genuineness_verdict=gen_res["verdict"],
+                genuineness_flags=gen_res["flags"],
             )
-            st.balloons()
-            st.success(f"🎉 Ticket successfully recorded with ID: **{cid}**. It is now visible in the Complaint Explorer and Dashboard.")
+
+            if gen_res["verdict"] == "SPAM_REJECTED":
+                st.error(
+                    f"🚫 **Ticket Quarantined ({cid})**: Your submission was identified as non-genuine/mischief "
+                    f"({gen_res['summary_reason']}). It has been routed to the **Admin Blocked/Spam Review Queue** "
+                    f"and will NOT appear in the active campus triage list unless manually approved by administration."
+                )
+            elif gen_res["verdict"] == "NEEDS_REVIEW":
+                st.warning(
+                    f"⚠️ **Ticket Registered Under Review ({cid})**: Submission has been recorded with status **Under Review**. "
+                    f"A campus administrator will verify ticket details prior to dispatch."
+                )
+            else:
+                st.balloons()
+                st.success(f"🎉 Ticket successfully recorded with ID: **{cid}**. It is now visible in the active Complaint Explorer and Dashboard.")
 
 
 # =========================================================
@@ -586,91 +698,163 @@ elif nav_choice == "📝 Submit & Triage Complaint":
 # =========================================================
 elif nav_choice == "🔍 Complaint Explorer":
     st.title("🔍 Campus Complaint Explorer & Status Management")
-    st.markdown("Filter, search, review prediction explanations, and update complaint resolution lifecycles.")
+    st.markdown("Filter, search, review prediction explanations, manage resolution lifecycles, and review quarantined submissions.")
 
     df = get_all_complaints()
 
     if df.empty:
         st.info("No complaints found in database.")
     else:
-        # Search & Filter Controls
-        f1, f2, f3, f4 = st.columns([2, 1, 1, 1])
-        with f1:
-            q_search = st.text_input("Search description or title...", placeholder="Type keywords like 'wifi', 'geyser', 'fee'...")
-        with f2:
-            cats = ["All Categories"] + sorted(list(df["category"].dropna().unique()))
-            q_cat = st.selectbox("Category", cats)
-        with f3:
-            prios = ["All Priorities", "Critical", "High", "Medium", "Low"]
-            q_prio = st.selectbox("Priority Tier", prios)
-        with f4:
-            statuses = ["All Statuses", "Pending", "In Progress", "Under Review", "Resolved"]
-            q_status = st.selectbox("Status", statuses)
+        blocked_count = len(df[df["status"] == "Spam/Blocked"])
+        exp_tab_active, exp_tab_blocked = st.tabs([
+            f"📋 Active Complaint Queue ({len(df) - blocked_count})",
+            f"🛡️ Blocked Mischief / Spam Quarantine ({blocked_count})",
+        ])
 
-        # Apply Filters
-        filtered = df.copy()
-        if q_search.strip():
-            kw = q_search.strip().lower()
-            filtered = filtered[
-                filtered["title"].str.lower().str.contains(kw)
-                | filtered["description"].str.lower().str.contains(kw)
-                | filtered["location"].str.lower().str.contains(kw)
-                | filtered["complaint_id"].str.lower().str.contains(kw)
-            ]
-        if q_cat != "All Categories":
-            filtered = filtered[filtered["category"] == q_cat]
-        if q_prio != "All Priorities":
-            filtered = filtered[filtered["priority_level"] == q_prio]
-        if q_status != "All Statuses":
-            filtered = filtered[filtered["status"] == q_status]
+        with exp_tab_active:
+            # Active Queue excludes Spam/Blocked by default
+            active_df = df[df["status"] != "Spam/Blocked"].copy()
 
-        st.markdown(f"**Showing {len(filtered)} matching complaint(s)**")
+            # Search & Filter Controls
+            f1, f2, f3, f4 = st.columns([2, 1, 1, 1])
+            with f1:
+                q_search = st.text_input("Search description or title...", placeholder="Type keywords like 'wifi', 'geyser', 'fee'...", key="act_search")
+            with f2:
+                cats = ["All Categories"] + sorted(list(active_df["category"].dropna().unique()))
+                q_cat = st.selectbox("Category", cats, key="act_cat")
+            with f3:
+                prios = ["All Priorities", "Critical", "High", "Medium", "Low"]
+                q_prio = st.selectbox("Priority Tier", prios, key="act_prio")
+            with f4:
+                statuses = ["All Statuses", "Pending", "In Progress", "Under Review", "Resolved"]
+                q_status = st.selectbox("Status", statuses, key="act_status")
 
-        # Table Display
-        display_cols = ["complaint_id", "title", "category", "location", "priority_level", "sentiment_label", "status", "submitted_at"]
-        st.dataframe(filtered[display_cols], use_container_width=True, hide_index=True)
+            # Apply Filters
+            filtered = active_df.copy()
+            if q_search.strip():
+                kw = q_search.strip().lower()
+                filtered = filtered[
+                    filtered["title"].str.lower().str.contains(kw)
+                    | filtered["description"].str.lower().str.contains(kw)
+                    | filtered["location"].str.lower().str.contains(kw)
+                    | filtered["complaint_id"].str.lower().str.contains(kw)
+                ]
+            if q_cat != "All Categories":
+                filtered = filtered[filtered["category"] == q_cat]
+            if q_prio != "All Priorities":
+                filtered = filtered[filtered["priority_level"] == q_prio]
+            if q_status != "All Statuses":
+                filtered = filtered[filtered["status"] == q_status]
 
-        st.markdown("---")
-        st.markdown("### 🛠️ Complaint Inspector & Action Panel")
+            st.markdown(f"**Showing {len(filtered)} matching complaint(s)**")
 
-        selected_id = st.selectbox(
-            "Select Complaint ID to inspect details or update resolution status:",
-            options=filtered["complaint_id"].tolist() if not filtered.empty else ["None"],
-        )
+            # Table Display
+            display_cols = ["complaint_id", "title", "category", "location", "priority_level", "sentiment_label", "status", "submitted_at"]
+            st.dataframe(filtered[display_cols], use_container_width=True, hide_index=True)
 
-        if selected_id and selected_id != "None":
-            item = get_complaint_by_id(selected_id)
-            if item:
-                d1, d2 = st.columns([3, 2])
-                with d1:
-                    st.markdown(f"#### [{item['complaint_id']}] {item['title']}")
-                    st.markdown(f"**Location:** {item['location']}")
-                    st.markdown(f"**Submitted:** {item['submitted_at']}")
-                    st.markdown("**Full Description:**")
-                    st.info(item["description"])
+            st.markdown("---")
+            st.markdown("### 🛠️ Complaint Inspector & Action Panel")
 
-                    if item.get("priority_factors"):
-                        st.markdown("**Urgency Factors Breakdown:**")
-                        for factor in item["priority_factors"]:
-                            st.write(f"• {factor}")
+            selected_id = st.selectbox(
+                "Select Complaint ID to inspect details or update resolution status:",
+                options=filtered["complaint_id"].tolist() if not filtered.empty else ["None"],
+                key="act_select",
+            )
 
-                with d2:
-                    st.markdown("#### Triage Metadata")
-                    st.write(f"Category: **{item['category']}**")
-                    st.write(f"Priority Level: **{item['priority_level']}** (Score: {item['priority_score']}/100)")
-                    st.write(f"Sentiment: **{item['sentiment_label']}** (Score: {item['sentiment_score']})")
-                    if item.get("duplicate_cluster_id"):
-                        st.write(f"Duplicate Cluster: `{item['duplicate_cluster_id']}`")
+            if selected_id and selected_id != "None":
+                item = get_complaint_by_id(selected_id)
+                if item:
+                    d1, d2 = st.columns([3, 2])
+                    with d1:
+                        st.markdown(f"#### [{item['complaint_id']}] {item['title']}")
+                        st.markdown(f"**Location:** {item['location']}")
+                        st.markdown(f"**Submitted:** {item['submitted_at']}")
+                        st.markdown("**Full Description:**")
+                        st.info(item["description"])
 
-                    st.markdown("#### Update Ticket Status")
-                    current_idx = ["Pending", "In Progress", "Under Review", "Resolved"].index(item["status"]) if item["status"] in ["Pending", "In Progress", "Under Review", "Resolved"] else 0
-                    new_st = st.selectbox("Resolution Lifecycle", ["Pending", "In Progress", "Under Review", "Resolved"], index=current_idx)
+                        if item.get("priority_factors"):
+                            st.markdown("**Urgency Factors Breakdown:**")
+                            for factor in item["priority_factors"]:
+                                st.write(f"• {factor}")
 
-                    if st.button("Save Status Update"):
-                        ok = update_complaint_status(selected_id, new_st)
-                        if ok:
-                            st.success(f"Ticket {selected_id} status updated to **{new_st}**!")
-                            st.rerun()
+                    with d2:
+                        st.markdown("#### Triage Metadata")
+                        st.write(f"Category: **{item['category']}**")
+                        st.write(f"Priority Level: **{item['priority_level']}** (Score: {item['priority_score']}/100)")
+                        st.write(f"Sentiment: **{item['sentiment_label']}** (Score: {item['sentiment_score']})")
+                        if "genuineness_score" in item:
+                            st.write(f"Authenticity Score: **{item['genuineness_score']}/100** ({item.get('genuineness_verdict', 'GENUINE')})")
+                        if item.get("duplicate_cluster_id"):
+                            st.write(f"Duplicate Cluster: `{item['duplicate_cluster_id']}`")
+
+                        st.markdown("#### Update Ticket Status")
+                        current_idx = ["Pending", "In Progress", "Under Review", "Resolved"].index(item["status"]) if item["status"] in ["Pending", "In Progress", "Under Review", "Resolved"] else 0
+                        new_st = st.selectbox("Resolution Lifecycle", ["Pending", "In Progress", "Under Review", "Resolved"], index=current_idx, key="act_status_select")
+
+                        if st.button("Save Status Update", key="act_save_btn"):
+                            ok = update_complaint_status(selected_id, new_st)
+                            if ok:
+                                st.success(f"Ticket {selected_id} status updated to **{new_st}**!")
+                                st.rerun()
+
+        with exp_tab_blocked:
+            st.markdown("### 🛡️ Quarantined Frivolous & Mischief Submissions")
+            st.markdown(
+                "These submissions were blocked by the Genuineness Engine due to gibberish/keyboard mashing, "
+                "profanity, dummy placeholder patterns, threats, or severe lack of detail. "
+                "They are hidden from active department work queues so administrators can focus on legitimate campus issues."
+            )
+
+            blocked_df = df[df["status"] == "Spam/Blocked"].copy()
+            if blocked_df.empty:
+                st.success("🎉 No quarantined spam or mischief tickets currently in database!")
+            else:
+                b_cols = ["complaint_id", "title", "description", "genuineness_score", "genuineness_verdict", "submitted_at"]
+                avail_b_cols = [c for c in b_cols if c in blocked_df.columns]
+                st.dataframe(blocked_df[avail_b_cols], use_container_width=True, hide_index=True)
+
+                st.markdown("---")
+                st.markdown("#### 🔍 Quarantined Ticket Inspector & Administrative Actions")
+                sel_blocked_id = st.selectbox(
+                    "Select Blocked Complaint ID:",
+                    options=blocked_df["complaint_id"].tolist(),
+                    key="sel_blocked",
+                )
+
+                if sel_blocked_id:
+                    b_item = get_complaint_by_id(sel_blocked_id)
+                    if b_item:
+                        b1, b2 = st.columns([3, 2])
+                        with b1:
+                            st.markdown(f"#### [{b_item['complaint_id']}] {b_item['title']}")
+                            st.markdown(f"**Submitted At:** {b_item['submitted_at']}")
+                            st.markdown(f"**Location:** {b_item['location']}")
+                            st.markdown("**Full Text:**")
+                            st.error(b_item["description"])
+
+                            flags = b_item.get("genuineness_flags", [])
+                            if flags:
+                                st.markdown("**Triggered Anti-Mischief Flags:**")
+                                for fl in flags:
+                                    st.markdown(f"- ⚠️ `{fl}`")
+
+                        with b2:
+                            st.markdown("#### Admin Security & Quality Verdict")
+                            st.metric("Genuineness Score", f"{b_item.get('genuineness_score', 0)} / 100")
+                            st.write(f"Verdict: **{b_item.get('genuineness_verdict', 'SPAM_REJECTED')}**")
+
+                            st.markdown("<br>", unsafe_allow_html=True)
+                            act_col1, act_col2 = st.columns(2)
+                            with act_col1:
+                                if st.button("✅ Approve & Unblock", use_container_width=True, help="Mark this ticket as legitimate and move it to the Active Queue."):
+                                    update_complaint_status(sel_blocked_id, "Pending")
+                                    st.success(f"Ticket {sel_blocked_id} restored to Active Queue with status 'Pending'!")
+                                    st.rerun()
+                            with act_col2:
+                                if st.button("🗑️ Permanently Delete", type="primary", use_container_width=True, help="Permanently purge this troll/threat from the database."):
+                                    delete_complaint(sel_blocked_id)
+                                    st.warning(f"Ticket {sel_blocked_id} permanently purged.")
+                                    st.rerun()
 
 
 # =========================================================
@@ -840,3 +1024,81 @@ elif nav_choice == "📈 Model Evaluation & Explainability":
                - Cosine similarity evaluates directional alignment in L2-normalized TF-IDF space.
                - In threshold tuning on validation pairs, $\tau = 0.50$ was selected and confirmed on untouched test pairs with $F_1 = 0.9767$ (Precision 100%, Recall 95.5%).
             """)
+
+
+# =========================================================
+# 5. ADMIN CONFIG STUDIO
+# =========================================================
+elif nav_choice == "⚙️ Admin Config Studio":
+    st.title("⚙️ Admin Config Studio")
+    st.markdown(
+        "Dynamically inspect and edit domain knowledge configurations without touching Python code. "
+        "Changes are saved to `data/*.json` and take effect immediately across all triage engines."
+    )
+
+    data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+    conf_tab1, conf_tab2, conf_tab3 = st.tabs([
+        "🏫 Campus Abbreviations",
+        "🎯 Priority Keywords & Baselines",
+        "🛡️ Genuineness & Spam Defense Rules",
+    ])
+
+    with conf_tab1:
+        st.markdown("##### Campus Slang & Acronym Expansions (`data/campus_abbreviations.json`)")
+        st.caption("Maps student shorthand like 'ac', 'hod', 'cse' to standardized full text before TF-IDF vectorization.")
+        abbr_path = os.path.join(data_dir, "campus_abbreviations.json")
+        try:
+            with open(abbr_path, "r", encoding="utf-8") as f:
+                abbr_content = f.read()
+        except Exception:
+            abbr_content = "{}"
+
+        new_abbr = st.text_area("JSON Editor (Campus Abbreviations)", value=abbr_content, height=350, key="cfg_abbr")
+        if st.button("💾 Save Campus Abbreviations", key="save_abbr_btn"):
+            try:
+                parsed = json.loads(new_abbr)
+                with open(abbr_path, "w", encoding="utf-8") as f:
+                    json.dump(parsed, f, indent=2)
+                st.success("✅ `campus_abbreviations.json` updated successfully!")
+            except json.JSONDecodeError as err:
+                st.error(f"❌ Invalid JSON format: {err}")
+
+    with conf_tab2:
+        st.markdown("##### Priority Scoring Keywords & Category Baselines (`data/priority_keywords.json`)")
+        st.caption("Configures emergency keyword triggers (e.g. fire, electric, exam), sentiment fallback lexicons, and baseline category weights.")
+        prio_path = os.path.join(data_dir, "priority_keywords.json")
+        try:
+            with open(prio_path, "r", encoding="utf-8") as f:
+                prio_content = f.read()
+        except Exception:
+            prio_content = "{}"
+
+        new_prio = st.text_area("JSON Editor (Priority Keywords)", value=prio_content, height=350, key="cfg_prio")
+        if st.button("💾 Save Priority Keywords", key="save_prio_btn"):
+            try:
+                parsed = json.loads(new_prio)
+                with open(prio_path, "w", encoding="utf-8") as f:
+                    json.dump(parsed, f, indent=2)
+                st.success("✅ `priority_keywords.json` updated successfully!")
+            except json.JSONDecodeError as err:
+                st.error(f"❌ Invalid JSON format: {err}")
+
+    with conf_tab3:
+        st.markdown("##### Genuineness Thresholds & Spam Filters (`data/genuineness_config.json`)")
+        st.caption("Adjusts anti-mischief thresholds (character limits, dictionary ratios), dummy spam patterns, and student security threat triggers.")
+        gen_path = os.path.join(data_dir, "genuineness_config.json")
+        try:
+            with open(gen_path, "r", encoding="utf-8") as f:
+                gen_content = f.read()
+        except Exception:
+            gen_content = "{}"
+
+        new_gen = st.text_area("JSON Editor (Genuineness Rules)", value=gen_content, height=350, key="cfg_gen")
+        if st.button("💾 Save Genuineness Config", key="save_gen_btn"):
+            try:
+                parsed = json.loads(new_gen)
+                with open(gen_path, "w", encoding="utf-8") as f:
+                    json.dump(parsed, f, indent=2)
+                st.success("✅ `genuineness_config.json` updated successfully!")
+            except json.JSONDecodeError as err:
+                st.error(f"❌ Invalid JSON format: {err}")

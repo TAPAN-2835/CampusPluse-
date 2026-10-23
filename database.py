@@ -1,6 +1,7 @@
 """
 CampusPulse - SQLite Local Persistence Layer
 Handles storage, retrieval, and status updates for student complaints.
+Includes genuineness score, spam/mischief flags, and quarantine status.
 """
 
 import json
@@ -20,7 +21,7 @@ def get_connection(db_path: str = DEFAULT_DB_PATH) -> sqlite3.Connection:
 
 
 def init_db(db_path: str = DEFAULT_DB_PATH) -> None:
-    """Initializes the database schema if it doesn't already exist."""
+    """Initializes the database schema if it doesn't already exist and runs migrations."""
     conn = get_connection(db_path)
     cursor = conn.cursor()
 
@@ -40,14 +41,29 @@ def init_db(db_path: str = DEFAULT_DB_PATH) -> None:
             priority_factors TEXT,
             status TEXT DEFAULT 'Pending',
             submitted_at TEXT NOT NULL,
-            duplicate_cluster_id TEXT
+            duplicate_cluster_id TEXT,
+            genuineness_score INTEGER DEFAULT 100,
+            genuineness_verdict TEXT DEFAULT 'GENUINE',
+            genuineness_flags TEXT DEFAULT '[]'
         )
     """)
+
+    # Migration check for existing databases that lack genuineness columns
+    cursor.execute("PRAGMA table_info(complaints)")
+    existing_cols = {row[1] for row in cursor.fetchall()}
+
+    if "genuineness_score" not in existing_cols:
+        cursor.execute("ALTER TABLE complaints ADD COLUMN genuineness_score INTEGER DEFAULT 100")
+    if "genuineness_verdict" not in existing_cols:
+        cursor.execute("ALTER TABLE complaints ADD COLUMN genuineness_verdict TEXT DEFAULT 'GENUINE'")
+    if "genuineness_flags" not in existing_cols:
+        cursor.execute("ALTER TABLE complaints ADD COLUMN genuineness_flags TEXT DEFAULT '[]'")
 
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_category ON complaints(category)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_status ON complaints(status)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_priority ON complaints(priority_level)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_submitted ON complaints(submitted_at)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_verdict ON complaints(genuineness_verdict)")
 
     conn.commit()
     conn.close()
@@ -78,9 +94,12 @@ def insert_complaint(
     status: str = "Pending",
     duplicate_cluster_id: Optional[str] = None,
     submitted_at: Optional[str] = None,
+    genuineness_score: int = 100,
+    genuineness_verdict: str = "GENUINE",
+    genuineness_flags: Optional[List[str]] = None,
     db_path: str = DEFAULT_DB_PATH,
 ) -> str:
-    """Inserts a new complaint record and returns the assigned complaint ID."""
+    """Inserts a new complaint record with validation metrics and returns the assigned complaint ID."""
     init_db(db_path)
     conn = get_connection(db_path)
     cursor = conn.cursor()
@@ -91,6 +110,7 @@ def insert_complaint(
 
     probs_json = json.dumps(probabilities or {})
     factors_json = json.dumps(priority_factors or [])
+    flags_json = json.dumps(genuineness_flags or [])
 
     cursor.execute(
         """
@@ -98,8 +118,9 @@ def insert_complaint(
             complaint_id, title, description, location, category,
             probabilities, sentiment_label, sentiment_score,
             priority_score, priority_level, priority_factors,
-            status, submitted_at, duplicate_cluster_id
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            status, submitted_at, duplicate_cluster_id,
+            genuineness_score, genuineness_verdict, genuineness_flags
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """,
         (
             complaint_id,
@@ -116,6 +137,9 @@ def insert_complaint(
             status,
             submitted_at,
             duplicate_cluster_id,
+            int(genuineness_score),
+            genuineness_verdict,
+            flags_json,
         ),
     )
 
@@ -147,6 +171,7 @@ def get_complaint_by_id(complaint_id: str, db_path: str = DEFAULT_DB_PATH) -> Op
         data = dict(row)
         data["probabilities"] = json.loads(data["probabilities"]) if data.get("probabilities") else {}
         data["priority_factors"] = json.loads(data["priority_factors"]) if data.get("priority_factors") else []
+        data["genuineness_flags"] = json.loads(data["genuineness_flags"]) if data.get("genuineness_flags") else []
         return data
     return None
 
@@ -165,8 +190,20 @@ def update_complaint_status(complaint_id: str, new_status: str, db_path: str = D
     return affected > 0
 
 
+def delete_complaint(complaint_id: str, db_path: str = DEFAULT_DB_PATH) -> bool:
+    """Permanently deletes a complaint (e.g. malicious spam/threat) from database."""
+    init_db(db_path)
+    conn = get_connection(db_path)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM complaints WHERE complaint_id = ?", (complaint_id,))
+    affected = cursor.rowcount
+    conn.commit()
+    conn.close()
+    return affected > 0
+
+
 def get_summary_statistics(db_path: str = DEFAULT_DB_PATH) -> Dict[str, Any]:
-    """Computes summary metrics for the executive dashboard."""
+    """Computes summary metrics for the executive dashboard, separating genuine and blocked submissions."""
     init_db(db_path)
     conn = get_connection(db_path)
     cursor = conn.cursor()
@@ -186,18 +223,28 @@ def get_summary_statistics(db_path: str = DEFAULT_DB_PATH) -> Dict[str, Any]:
     cursor.execute("SELECT COUNT(*) FROM complaints WHERE status = 'Resolved'")
     resolved = cursor.fetchone()[0]
 
-    cursor.execute("SELECT COUNT(*) FROM complaints WHERE priority_level IN ('High', 'Critical') AND status != 'Resolved'")
+    cursor.execute("SELECT COUNT(*) FROM complaints WHERE status = 'Spam/Blocked' OR genuineness_verdict = 'SPAM_REJECTED'")
+    spam_blocked = cursor.fetchone()[0]
+
+    cursor.execute(
+        "SELECT COUNT(*) FROM complaints WHERE priority_level IN ('High', 'Critical') AND status NOT IN ('Resolved', 'Spam/Blocked')"
+    )
     urgent_open = cursor.fetchone()[0]
 
     conn.close()
 
+    active_open = pending + in_progress + under_review
+    genuine_total = total - spam_blocked
+
     return {
         "total": total,
+        "genuine_total": genuine_total,
         "pending": pending,
         "in_progress": in_progress,
         "under_review": under_review,
-        "active_open": pending + in_progress + under_review,
+        "active_open": active_open,
         "resolved": resolved,
         "urgent_open": urgent_open,
-        "resolution_rate": round((resolved / total * 100), 1) if total > 0 else 0.0,
+        "spam_blocked": spam_blocked,
+        "resolution_rate": round((resolved / genuine_total * 100), 1) if genuine_total > 0 else 0.0,
     }

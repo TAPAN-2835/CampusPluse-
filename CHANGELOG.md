@@ -4,6 +4,45 @@
 
 ---
 
+## [v2.2.0] — 2026-10-24 — *Anti-Mischief Gate, Complaint Genuineness Engine & Admin Studio*
+
+### 🎯 Why This Version
+A student complaint portal open to all students faces two operational hazards:
+1. **Frivolous mischief / spam / trolling**: Random keyboard mashing (`asdfghjkl`), dummy test entries (`test 123`), excessive single-word repetition, and off-topic submissions overwhelm administrators with useless noise.
+2. **Abusive conduct & security threats**: Hostile threats or abusive profanity directed at faculty or administrative staff require immediate quarantine and critical alerts.
+
+This version introduces an intelligent, transparent **Genuineness and Mischief Detection Engine** (`genuineness.py` + `data/genuineness_config.json`) that validates incoming complaints before they enter the active workflow, plus an **Admin Config Studio** to tune rules dynamically.
+
+### ✅ What Was Done
+
+#### New Files Created
+| File | Purpose |
+|------|---------|
+| [`genuineness.py`](file:///c:/Users/anish/OneDrive/Desktop/NLP%20project/CampusPluse-/genuineness.py) | Real-time complaint authenticity validation engine (0–100 score, factor breakdown, verdicts: `GENUINE`, `NEEDS_REVIEW`, `SPAM_REJECTED`) |
+| [`data/genuineness_config.json`](file:///c:/Users/anish/OneDrive/Desktop/NLP%20project/CampusPluse-/data/genuineness_config.json) | Externalized thresholds, spam patterns, threat keywords, profanity lists, and campus relevance keywords |
+| [`tests/test_genuineness.py`](file:///c:/Users/anish/OneDrive/Desktop/NLP%20project/CampusPluse-/tests/test_genuineness.py) | Comprehensive unit tests for genuine complaints, keyboard mashing, short text, dummy submissions, threats, profanity, and word repetition |
+
+#### Files Modified
+
+**`database.py` — Schema Migration & Quarantine Operations**
+- Added columns to `complaints` table: `genuineness_score`, `genuineness_verdict`, `genuineness_flags` with automatic backward-compatible schema migration (`PRAGMA table_info`).
+- Added `delete_complaint(complaint_id)` to permanently purge malicious submissions.
+- Updated `get_summary_statistics()` to track `spam_blocked` count and separate genuine active tickets from quarantined mischief.
+
+**`app.py` — Full UI Integration**
+- **Executive Dashboard**: Added `Filtered Mischief` KPI card; separated active genuine complaints from quarantined spam.
+- **Submit & Triage Page**: Added 1-click test mischief & threat demo presets; real-time Authenticity Scorecard (0–100); 4th detailed inspection tab `🛡️ Genuineness & Anti-Mischief Audit`; automatic quarantine routing (`Spam/Blocked` status).
+- **Complaint Explorer**: Added dual tabs: `📋 Active Complaint Queue` (unpolluted) and `🛡️ Blocked Mischief / Spam Quarantine` with inspector, `✅ Approve & Unblock`, and `🗑️ Permanently Delete` actions.
+- **Admin Config Studio**: Added a live interactive visual editor for `campus_abbreviations.json`, `priority_keywords.json`, and `genuineness_config.json` with instant JSON validation and persistence.
+
+**`tests/test_database.py`**
+- Added test coverage for `genuineness_score`, `genuineness_verdict`, `genuineness_flags`, and `delete_complaint`.
+
+### 🧪 Tests
+- **31/31 unit tests passing** across the entire project (`tests/test_*.py`).
+
+---
+
 ## [v2.1.0] — 2026-10-24 — *Config-Driven Architecture + Performance Boost*
 
 ### 🎯 Why This Version
@@ -60,20 +99,22 @@ After v2.0.0 established the working NLP pipeline, the codebase had a critical m
 
 ---
 
-## [v2.0.0] — 2026-10-23 — *Original Project Submission*
+## [v2.0.0] — Initial Academic Submission — *The Working NLP System*
 
-### 🎯 Overview
-Initial implementation of CampusPulse — an explainable NLP campus complaint intelligence system.
+### 🎯 Why This Version
+This was the first fully functional, end-to-end version submitted as a minor academic project. It established the entire pipeline architecture: preprocessing → classification → duplicate detection → sentiment → priority scoring → Streamlit dashboard.
 
-### Key Components
-#### Core Pipeline
-- `preprocessing.py` — Text cleaning, regex abbreviation normalization, custom stopwords preservation (negations kept)
-- `train.py` — Stratified training of TF-IDF + Logistic Regression multiclass classifier
-- `priority.py` — VADER sentiment analysis + rule-based urgency scoring heuristic (0-100)
-- `similarity.py` — TF-IDF cosine similarity engine for near-duplicate complaint clustering
-- `database.py` — SQLite persistence (`campuspulse.db`) with status lifecycle management
-- `evaluation.py` — Metric generation, confusion matrix, precision-recall curve plotting
-- `app.py` — 4-page Streamlit web application
+### ✅ What Was Done
+
+#### Architecture Established
+- **`preprocessing.py`**: Text cleaning pipeline with hardcoded stopwords, contraction regex dict, campus abbreviation dict, negation word preservation
+- **`similarity.py`**: `ComplaintSimilarityEngine` using TF-IDF cosine similarity for duplicate detection; `evaluate_duplicate_thresholds()` for benchmark P/R/F1
+- **`priority.py`**: VADER sentiment analysis + 7-factor rule-based priority scoring (0–100 scale)
+- **`database.py`**: SQLite CRUD layer with auto-incremented ticket IDs (`CP-YYYY-XXXX`)
+- **`evaluation.py`**: Plotly figure generators for confusion matrix, per-class metrics, PR curves
+- **`train.py`**: TF-IDF + Logistic Regression pipeline with leakage-free train/test split evaluation
+- **`prepare_data.py`**: Seeds SQLite with benchmark complaint data from CSV
+- **`app.py`** (843 lines): 4-page Streamlit dashboard with custom CSS, Plotly charts, duplicate cluster detection
 
 #### Data
 - `data/train.csv` — 273 labeled training complaints
@@ -108,26 +149,30 @@ Initial implementation of CampusPulse — an explainable NLP campus complaint in
 
 ## Version Comparison Table
 
-| Feature / Metric | v2.0.0 | v2.1.0 |
-|---|---|---|
-| **Test Accuracy** | 81.36% | **86.44%** |
-| **Macro F1** | 0.8328 | **0.8790** |
-| **Gain vs. Majority** | +32.20% | **+37.29%** |
-| Contraction Expansion | 15-pattern regex dict (hardcoded) | `contractions` library (200+ patterns) |
-| Campus Abbreviations | Hardcoded dict in `preprocessing.py` | `data/campus_abbreviations.json` (45 entries) |
-| Negation Words | Hardcoded set in `preprocessing.py` | `data/negation_words.json` (13 words) |
-| Priority Keywords | Hardcoded dicts in `priority.py` | `data/priority_keywords.json` (all keyword groups) |
-| Sentiment Fallback Lexicon | Hardcoded sets in `priority.py` | `data/priority_keywords.json` |
-| Adding new keyword | Edit Python source code | Edit JSON file only |
-| Unit Tests Passing | 22/22 | 22/22 |
-| Python Dependencies | 8 packages | 9 packages (`contractions` added) |
+| Feature / Metric | v2.0.0 | v2.1.0 | v2.2.0 (Current) |
+|---|---|---|---|
+| **Test Accuracy** | 81.36% | **86.44%** | **86.44%** |
+| **Macro F1** | 0.8328 | **0.8790** | **0.8790** |
+| **Gain vs. Majority** | +32.20% | **+37.29%** | **+37.29%** |
+| Contraction Expansion | 15 regex patterns | `contractions` library | `contractions` library |
+| Campus Abbreviations | Hardcoded dict | `campus_abbreviations.json` | JSON + Live Admin UI Editor |
+| Priority Keywords | Hardcoded dicts | `priority_keywords.json` | JSON + Live Admin UI Editor |
+| Genuineness / Anti-Mischief Gate | ❌ None (all accepted) | ❌ None | ✅ **`genuineness.py` (0-100 Score)** |
+| Spam & Keyboard Mash Filtering | ❌ None | ❌ None | ✅ **Quarantined to Spam Queue** |
+| Threat & Security Alert Detection | ❌ None | ❌ None | ✅ **Automatic Security Quarantine** |
+| Admin Config Studio UI | ❌ None | ❌ None | ✅ **Live JSON Editor in app.py** |
+| Unit Tests Passing | 18/18 | 22/22 | **31/31** |
 
 ---
 
-## Roadmap / Planned Improvements
+## Roadmap & Feature Status
 
 | Priority | Feature | Status |
 |----------|---------|--------|
-| 🟢 High | Complaint Genuineness & Anti-Mischief Defense Engine | Planned |
-| 🟢 High | Quarantined Spam/Mischief Queue with Admin Unblock / Purge | Planned |
-| 🟢 High | Streamlit Admin Config Studio to edit JSON rules directly | Planned |
+| 🟢 High | Externalize domain knowledge to JSON configs | ✅ Completed (v2.1.0) |
+| 🟢 High | Update documentation (`PROJECT_REPORT.md`, `README.md`, `VIVA_PREPARATION.md`) | ✅ Completed (v2.1.0) |
+| 🟢 High | Complaint Genuineness & Anti-Mischief Defense Engine | ✅ Completed (v2.2.0) |
+| 🟢 High | Quarantined Spam/Mischief Queue with Admin Unblock / Purge | ✅ Completed (v2.2.0) |
+| 🟢 High | Streamlit Admin Config Studio to edit JSON rules directly | ✅ Completed (v2.2.0) |
+| 🟡 Low | Explore neural/transformer embeddings if dataset scales | On Hold (Small data ceiling) |
+
