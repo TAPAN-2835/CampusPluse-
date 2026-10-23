@@ -1,0 +1,87 @@
+{
+  "_comment": "Priority scoring keyword lists for CampusPulse rule-based triage engine.",
+  "_note": "Edit this file to add/remove keywords without touching priority.py. Each keyword maps to a human-readable reason string shown in the explainability panel.",
+
+  "category_baselines": {
+    "_comment": "Base urgency score per complaint category. Format: [score, reason]",
+    "Infrastructure":               [20, "Infrastructure and maintenance issues carry physical & safety implications"],
+    "Technical":                    [15, "Technical disruptions impact labs, connectivity, and digital learning"],
+    "Academic":                     [15, "Academic disruptions impact coursework, evaluations, and grading"],
+    "Finance":                      [15, "Financial discrepancies impact registrations and administrative clearance"],
+    "Administrative":               [10, "Administrative processes and operational coordination"],
+    "Electricity and Infrastructure":[20, "Electrical/infrastructure issues carry higher physical & safety risks"],
+    "Water and Sanitation":         [20, "Water supply & hygiene concerns directly impact student health"],
+    "Hostel and Accommodation":     [15, "Living condition issues affect daily student welfare and rest"],
+    "Academics and Administration": [15, "Administrative blockages may disrupt exams or course registration"],
+    "Internet and Wi-Fi":           [15, "Connectivity disruptions impact study routines and submissions"],
+    "Other":                        [10, "General inquiry or uncategorized operational issue"]
+  },
+
+  "safety_keywords": {
+    "_comment": "Physical safety / hazard keywords. Match triggers +30 priority points.",
+    "spark":          "Electrical sparking detected",
+    "sparks":         "Electrical sparking detected",
+    "fire":           "Fire or burn hazard mentioned",
+    "smoke":          "Smoke observed",
+    "shock":          "Electric shock risk identified",
+    "short circuit":  "Short circuit hazard",
+    "flooding":       "Water flooding reported",
+    "flood":          "Water flooding reported",
+    "collapse":       "Structural collapse risk",
+    "collapsed":      "Structural collapse risk",
+    "danger":         "Explicit safety danger flagged",
+    "hazard":         "Hazardous condition reported",
+    "hazardous":      "Hazardous condition reported",
+    "gas leak":       "Gas leak risk",
+    "food poisoning": "Food poisoning or severe health illness",
+    "vomiting":       "Severe gastrointestinal illness reported",
+    "contaminated":   "Contaminated water/food supply",
+    "theft":          "Security/theft breach",
+    "broken lock":    "Hostel room security compromise",
+    "electrocution":  "Electrocution risk",
+    "injury":         "Physical injury reported",
+    "injured":        "Physical injury reported",
+    "bleeding":       "Medical emergency — bleeding reported",
+    "faint":          "Medical emergency — fainting reported"
+  },
+
+  "academic_urgency_keywords": {
+    "_comment": "Academic deadline / constraint keywords. Match triggers +15 priority points.",
+    "exam":           "Upcoming examination deadline constraint",
+    "exams":          "Upcoming examination deadline constraint",
+    "viva":           "Imminent viva assessment",
+    "deadline":       "Time-sensitive assignment or portal deadline",
+    "submission":     "Project or homework submission affected",
+    "placement":      "Placement drive or interview affected",
+    "interview":      "Interview preparation hindered",
+    "assessment":     "Formal assessment deadline approaching",
+    "result":         "Results or grade publication affected",
+    "internship":     "Internship application or joining affected",
+    "scholarship":    "Scholarship or fee deadline approaching"
+  },
+
+  "operational_urgency_keywords": {
+    "_comment": "Complainant urgency markers. Match triggers +10 priority points (if no safety match).",
+    "urgent":         "Explicitly marked urgent by complainant",
+    "immediately":    "Requires prompt intervention",
+    "emergency":      "Student declared emergency condition",
+    "critical":       "Critical system downtime",
+    "blackout":       "Complete power blackout",
+    "severe":         "Severe impact reported",
+    "asap":           "Requested resolution as soon as possible",
+    "helpless":       "Student expressed helplessness",
+    "desperate":      "Student expressed desperation"
+  },
+
+  "sentiment_fallback_negative": [
+    "broken", "terrible", "worst", "awful", "bad", "horrible", "leak",
+    "failing", "unacceptable", "dirty", "smelly", "disgusting", "angry",
+    "frustrated", "suffering", "useless", "danger", "hazardous", "shock",
+    "pathetic", "disgusted", "shameful", "negligence", "ignored"
+  ],
+
+  "sentiment_fallback_positive": [
+    "good", "great", "excellent", "working", "resolved", "fine",
+    "helpful", "thanks", "appreciated", "satisfied", "improved"
+  ]
+}

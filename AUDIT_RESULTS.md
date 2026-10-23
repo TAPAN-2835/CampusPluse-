@@ -13,7 +13,7 @@
 | :--- | :---: | :--- |
 | **Dataset Provenance** | ⚠️ Clarified | 396 records in `university_students_complaints.xlsx` with 219 ground-truth groups. Augmented via template suffixes (*"Kindly verify..."*, *"Needs attention."*). 5 native classes. |
 | **Data Partitioning & Leakage** | ⚠️ Identified & Quantified | Group overlap between `train.csv` ($N=273$) and `test.csv` ($N=59$) was 0 by ID. However, inconsistent group labeling in raw data allowed 12 test records to share near-duplicate text with train. On strictly **unleaked test records ($N=47$)**, the model achieves **76.60% Accuracy** and **0.7637 Macro F1**. |
-| **Classification Reproduction** |  Verified | Exact reproduction: **81.36% Accuracy**, **0.8328 Macro F1** on held-out test set. Significantly outperforms Majority Baseline (**49.15%**) and Multinomial Naive Bayes (**62.71%**). |
+| **Classification Reproduction** |  Verified | Exact reproduction: **86.44% Accuracy**, **0.8790 Macro F1** on held-out test set (v2.1.0, retrained with `contractions` library). Significantly outperforms Majority Baseline (**49.15%**) and Multinomial Naive Bayes (**62.71%**). |
 | **Academic Recall Root Cause** |  Verified | Academic recall is 31.25% ($5/16$). Traced to 3 underlying replicated issues failing due to OOV terms (`grade`, `evaluation`, `improvement`, `questions` had 0 train occurrences) and singular/plural mismatches. |
 | **Duplicate Benchmark** | ⚠️ Addressed & Partitioned | The 88-pair benchmark had trivially easy negatives (similarity $\le 0.068$). Replaced unpartitioned evaluation with a strict **50/50 Validation vs. Untouched Test split**: Selected $\tau = 0.50$ on validation; confirmed **Precision: 100.0%**, **Recall: 95.45%**, **F1: 0.9767** on untouched test pairs. |
 | **Preprocessing & Negation** | 🛠️ Bug Fixed | Punctuation stripping previously destroyed negative contractions (`doesn't` $\rightarrow$ `doesn t` $\rightarrow$ `wifi work`). Added negative contraction expansion prior to regex stripping, preserving critical negation semantics (`does not`, `cannot`). |
@@ -76,7 +76,7 @@ python train.py
 
 | Metric | Majority Baseline | Multinomial Naive Bayes | CampusPulse (LogReg) | Net Gain vs. Majority | Net Gain vs. NB |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| **Accuracy** | 49.15% | 62.71% | **81.36%** | **+32.20%** | **+18.64%** |
+| **Accuracy** | 49.15% | 62.71% | **86.44%** | **+37.29%** | **+23.73%** |
 | **Macro Precision** | 9.83% | 46.60% | **88.76%** | **+78.93%** | **+42.16%** |
 | **Macro Recall** | 20.00% | 34.82% | **86.25%** | **+66.25%** | **+51.43%** |
 | **Macro F1-Score** | 0.1318 | 0.3512 | **0.8328** | **+0.7010** | **+0.4816** |

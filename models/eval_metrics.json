@@ -9,25 +9,25 @@
     "Infrastructure",
     "Technical"
   ],
-  "test_accuracy": 0.8136,
-  "test_macro_precision": 0.8876,
-  "test_macro_recall": 0.8625,
-  "test_macro_f1": 0.8328,
+  "test_accuracy": 0.8644,
+  "test_macro_precision": 0.9007,
+  "test_macro_recall": 0.9,
+  "test_macro_f1": 0.879,
   "baseline_majority_accuracy": 0.4915,
   "baseline_majority_f1": 0.1318,
   "baseline_nb_accuracy": 0.6271,
   "baseline_nb_macro_precision": 0.466,
   "baseline_nb_macro_recall": 0.3482,
   "baseline_nb_macro_f1": 0.3512,
-  "accuracy_gain_over_baseline": 0.322,
-  "accuracy_gain_over_majority_baseline": 0.322,
-  "accuracy_gain_over_nb_baseline": 0.1864,
+  "accuracy_gain_over_baseline": 0.3729,
+  "accuracy_gain_over_majority_baseline": 0.3729,
+  "accuracy_gain_over_nb_baseline": 0.2373,
   "confusion_matrix": [
     [
-      5,
+      8,
       0,
       1,
-      9,
+      6,
       1
     ],
     [
@@ -62,8 +62,8 @@
   "classification_report": {
     "Academic": {
       "precision": 1.0,
-      "recall": 0.3125,
-      "f1-score": 0.47619047619047616,
+      "recall": 0.5,
+      "f1-score": 0.6666666666666666,
       "support": 16.0
     },
     "Administrative": {
@@ -79,9 +79,9 @@
       "support": 4.0
     },
     "Infrastructure": {
-      "precision": 0.7631578947368421,
+      "precision": 0.8285714285714286,
       "recall": 1.0,
-      "f1-score": 0.8656716417910447,
+      "f1-score": 0.90625,
       "support": 29.0
     },
     "Technical": {
@@ -90,17 +90,17 @@
       "f1-score": 0.9333333333333333,
       "support": 7.0
     },
-    "accuracy": 0.8135593220338984,
+    "accuracy": 0.864406779661017,
     "macro avg": {
-      "precision": 0.8876315789473683,
-      "recall": 0.8625,
-      "f1-score": 0.8328168680407486,
+      "precision": 0.9007142857142856,
+      "recall": 0.9,
+      "f1-score": 0.8790277777777777,
       "support": 59.0
     },
     "weighted avg": {
-      "precision": 0.8551962533452274,
-      "recall": 0.8135593220338984,
-      "f1-score": 0.7764815952521492,
+      "precision": 0.8873486682808717,
+      "recall": 0.864406779661017,
+      "f1-score": 0.8480814500941619,
       "support": 59.0
     }
   },
@@ -109,38 +109,38 @@
       "teachers",
       "cse",
       "groups",
-      "never find",
-      "never",
       "adviser",
       "find adviser",
+      "never find",
+      "never",
       "quizzes"
     ],
     "Administrative": [
       "study",
-      "cafeteria larger",
       "cafeteria",
       "size",
-      "larger",
+      "cafeteria larger",
       "size teacup",
       "teacup cafeteria",
-      "teacup"
+      "teacup",
+      "larger"
     ],
     "Finance": [
       "payment",
       "fee",
       "portal",
       "refund",
-      "would good",
-      "good",
+      "student",
       "merchant",
+      "nagad",
       "nagad merchant"
     ],
     "Infrastructure": [
       "parking",
       "washrooms",
       "female",
-      "clear",
       "water",
+      "clear",
       "lights",
       "replaced",
       "room"
@@ -210,21 +210,21 @@
     {
       "threshold": 0.7,
       "precision": 1.0,
-      "recall": 0.7727,
-      "f1_score": 0.8718,
-      "tp": 34,
+      "recall": 0.7273,
+      "f1_score": 0.8421,
+      "tp": 32,
       "fp": 0,
-      "fn": 10,
+      "fn": 12,
       "tn": 44
     },
     {
       "threshold": 0.8,
       "precision": 1.0,
-      "recall": 0.5227,
-      "f1_score": 0.6866,
-      "tp": 23,
+      "recall": 0.5,
+      "f1_score": 0.6667,
+      "tp": 22,
       "fp": 0,
-      "fn": 21,
+      "fn": 22,
       "tn": 44
     }
   ],

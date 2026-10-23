@@ -1,0 +1,10 @@
+{
+  "_comment": "Negation words preserved during stopword removal in CampusPulse preprocessing.",
+  "_note": "These words are explicitly NOT removed as stopwords because they change the meaning of complaints (e.g. 'wifi not working', 'no water supply'). Add domain-specific negation terms here.",
+
+  "words": [
+    "no", "not", "none", "neither", "never", "nobody",
+    "nowhere", "hardly", "barely", "without", "cannot",
+    "nothing", "nor"
+  ]
+}

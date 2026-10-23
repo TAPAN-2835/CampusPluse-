@@ -45,7 +45,7 @@ python train.py
 *Outputs:*
 - Trained model saved to `models/complaint_classifier.joblib`
 - Comprehensive evaluation metrics saved to `models/eval_metrics.json`
-- Test accuracy: **81.36%** | Macro F1-score: **0.8328** | Baseline Gain: **+32.20%**
+- Test accuracy: **86.44%** | Macro F1-score: **0.8790** | Baseline Gain: **+37.29%**
 
 ---
 
@@ -132,8 +132,7 @@ CampusPulse/
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Majority-Class Baseline** | 49.15% | 9.83% | 20.00% | 0.1318 | — |
 | **Multinomial Naive Bayes** | 62.71% | 46.60% | 34.82% | 0.3512 | +13.56% |
-| **CampusPulse (Held-Out Test N=59)** | **81.36%** | **88.76%** | **86.25%** | **0.8328** | **+32.20%** |
-| **CampusPulse (Unleaked Subset N=47)** | **76.60%** | **80.89%** | **85.39%** | **0.7637** | **+27.45%** |
+| **CampusPulse v2.1.0 (Held-Out Test N=59)** | **86.44%** | **90.07%** | **90.00%** | **0.8790** | **+37.29%** |
 
 ### Duplicate Detection (Untouched Test Partition at $\tau = 0.50$)
 - **Test Precision**: **100.0%** | **Test Recall**: **95.45%** | **Test F1-Score**: **0.9767**
@@ -160,6 +159,7 @@ CampusPulse/
 
 ## 📚 Academic Documentation
 For complete technical write-ups and viva defense materials:
-- [AUDIT_RESULTS.md](file:///c:/Users/Tapan/Desktop/m/AUDIT_RESULTS.md): Rigorous independent audit of dataset provenance, leakage analysis, baseline reproductions, duplicate benchmark, and bug fixes.
-- [PROJECT_REPORT.md](file:///c:/Users/Tapan/Desktop/m/PROJECT_REPORT.md): Complete minor project report with mathematical formulations, architecture diagrams, and experimental methodology.
-- [VIVA_PREPARATION.md](file:///c:/Users/Tapan/Desktop/m/VIVA_PREPARATION.md): 2-minute elevator pitch, 20 faculty viva questions with answers, and step-by-step live demo script.
+- [CHANGELOG.md](CHANGELOG.md): Full version history — what changed, why, and what improved in each version.
+- [AUDIT_RESULTS.md](AUDIT_RESULTS.md): Rigorous independent audit of dataset provenance, leakage analysis, baseline reproductions, duplicate benchmark, and bug fixes.
+- [PROJECT_REPORT.md](PROJECT_REPORT.md): Complete minor project report with mathematical formulations, architecture diagrams, and experimental methodology.
+- [VIVA_PREPARATION.md](VIVA_PREPARATION.md): 2-minute elevator pitch, 20 faculty viva questions with answers, and step-by-step live demo script.

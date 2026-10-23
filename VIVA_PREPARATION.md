@@ -107,7 +107,7 @@ If asked: *"How would you extend this project using deep learning?"*:
 **Answer**: VADER evaluates emotional sentiment (frustration, anger, satisfaction) on a scale of -1.0 to +1.0. Priority is governed by documented campus safety and operational rules (e.g., electrical sparking adds $+30$, active exam deadline adds $+15$). A very angry student reporting a cold shower receives lower priority than a calmly phrased report of an electrical fire hazard.
 
 ### Q10: What accuracy did your model achieve, and what were your baselines?
-**Answer**: Our primary model (TF-IDF + Balanced Logistic Regression) achieved **81.36% test accuracy** and a **Macro F1-score of 0.8328** on the held-out test set (`data/test.csv`). We evaluated against two baselines:
+**Answer**: Our primary model (TF-IDF + Balanced Logistic Regression) achieved **86.44% test accuracy** and a **Macro F1-score of 0.8790** on the held-out test set (`data/test.csv`). We evaluated against two baselines:
 1. **Majority-Class Baseline**: Achieved **49.15% accuracy** and **0.1318 Macro F1** (always predicting Infrastructure). CampusPulse provides a **+32.20% net accuracy gain**.
 2. **Multinomial Naive Bayes Baseline**: Achieved **62.71% accuracy** and **0.3512 Macro F1**. Naive Bayes suffered complete collapse on minority classes (0% recall on Administrative and Finance) due to severe class imbalance, proving the necessity of Logistic Regression with balanced class weights.
 
