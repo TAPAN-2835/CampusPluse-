@@ -1,0 +1,932 @@
+================================================================================
+CAMPUSPULSE: COMPLETE NLP SYLLABUS (WEEKS 1 TO 12) TO PROJECT MASTER GUIDE
+================================================================================
+
+Document Type  : Exhaustive Academic Syllabus Concept Mapping, Numerical Proofs
+                 and Codebase Audit Guide
+Course         : Natural Language Processing (20IC403T) - Semester 7, ICT, PDEU
+Repository     : CampusPulse (Explainable University Student Complaint System)
+Source Decks   : 10 Syllabus PPT Decks (NLP_Unit1_Week1.pptx to NLP_Unit3_Week12.pptx)
+Total Slides   : 165 Slides Extracted and Analyzed Page-by-Page
+Evaluation Date: October 2026
+
+--------------------------------------------------------------------------------
+TABLE OF CONTENTS
+--------------------------------------------------------------------------------
+1. Master Syllabus-to-Project Cross-Reference Matrix
+2. Unit 1: Overview of NLP & Foundational Preprocessing (Weeks 1 to 3)
+   - Week 1: Overview, NLP Tasks, Challenges, Paradigms & Progression Timeline
+   - Week 2: NLP Pipeline, Token vs Type, Whitespace Pitfalls, Morphology & BPE
+   - Week 3: Normalization, Negation Retention, Stemming vs Lemmatization,
+             POS Tagging, NER, and BPE 6-Merge Step-by-Step Worked Problem
+3. Unit 2: Feature Representations & Language Modeling (Weeks 4 to 11)
+   - Week 4: Discrete Representations, One-Hot Encoding, Bag-of-Words,
+             High Dimensionality, Orthogonality, and Distributional Hypothesis
+   - Week 5: Distributional Semantics, Co-occurrence Matrix, PMI, PPMI,
+             TF-IDF Theory vs Scikit-Learn Smooth Implementation with Full
+             Numerical Proof (Doc 1 & Doc 2)
+   - Weeks 6-7: N-gram Language Models, Joint Probability, Chain Rule,
+                Markov Assumption, MLE, Sentence Boundaries, Perplexity,
+                Claude Shannon Information Theory, Bigram vs Trigram Full
+                Numerical Calculations
+   - Weeks 8-9: Data Sparsity & Zero-Probability Problem, Laplace (Add-1)
+                Smoothing, Proof of Sum=1, Add-m (Lidstone), Effective
+                Branching Factor, Katz Back-off, Linear Interpolation,
+                and Laplace Numerical Walkthrough
+   - Week 10: Distributed Dense Representations, Sparse vs Dense Vectors,
+              Word2Vec Methodology, Self-Supervised Tasks, CBOW vs Skip-gram
+   - Week 11: Deep Walkthrough of CBOW & Skip-gram Architecture, Projection,
+              Logits, Softmax, Cross-Entropy Loss (Both Worked Problems),
+              GloVe Matrix Factorization, and FastText Subword Trigrams
+4. Unit 3: Artificial Neural Networks for NLP (Week 12)
+   - Week 12: Sequential Learning, Vanilla RNN Cell Architecture, Recurrence,
+              Backpropagation Through Time (BPTT), Vanishing/Exploding Gradients,
+              Parameter Count Worked Problem (|V|=5, d=6 -> 96 weights),
+              LSTM Memory Cell & Gates (Forget, Input, Candidate, Output),
+              Bi-LSTM, Stacked LSTM, GRU, and Comparison Matrix
+   - Deep Model Selection Rationale: Statistical ML (LogReg) vs Deep Recurrent
+     Networks on a 540-Sample Grievance Dataset
+5. End-to-End Complaint Processing Flow & Exact Input/Output Specifications
+6. Comprehensive Codebase Cross-Reference Index
+
+
+================================================================================
+1. MASTER SYLLABUS-TO-PROJECT CROSS-REFERENCE MATRIX
+================================================================================
+
++-----------------------+----------------------------------+------------------------------------+--------------------------------+
+| Week / PPT Deck       | Core Syllabus Concepts           | Exact Slide Numerical Data         | CampusPulse Code Reference     |
++-----------------------+----------------------------------+------------------------------------+--------------------------------+
+| Unit 1, Week 1        | NLP Tasks (Classification,       | Progression timeline:              | server.py, app.py, train.py,   |
+| (NLP_Unit1_Week1.pptx)| Sentiment, QA, Translation),     | Rule-Based -> Statistical ML ->    | priority.py                    |
+|                       | Challenges (Ambiguity, Sarcasm), | Deep Learning -> Transformers      | (Multi-stage hybrid pipeline   |
+|                       | Paradigms (Rule, Stat, DL, LLM)  |                                    | achieving 4.2 ms CPU latency)  |
++-----------------------+----------------------------------+------------------------------------+--------------------------------+
+| Unit 1, Week 2        | NLP Pipeline, Token vs Type,     | Slide 7 Counts:                    | preprocessing.py (clean_text,  |
+| (NLP_Unit1_Week2.pptx)| Whitespace Tokenization Issues,  | 15 tokens, 13 unique types in      | tokenize_words)                |
+|                       | Morphology & Morphemes, BPE      | running San Francisco sentence     | (Hyphen retention: wi-fi;      |
+|                       | Token Learner & Segmenter        |                                    | campus acronym expansion: hod) |
++-----------------------+----------------------------------+------------------------------------+--------------------------------+
+| Unit 1, Week 3        | Stop Words (Negation retention), | Slide 18-21 BPE Worked Problem:    | preprocessing.py (STOPWORDS,   |
+| (NLP_Unit1_Week3.pptx)| Stemming vs Lemmatization, POS   | 6 merges on read corpus; fallback  | NEGATION_WORDS, CONTRACTIONS), |
+|                       | (Penn Treebank 36 tags), NER,    | to character tokens for OOV words  | priority.py (Urgency entities) |
+|                       | Dependency parsing, BPE problem  | (readable -> read a b l e _)       |                                |
++-----------------------+----------------------------------+------------------------------------+--------------------------------+
+| Unit 2, Week 4        | Discrete Text Representations,   | Orthogonality: u . v = 0           | train.py, similarity.py        |
+| (NLP_Unit2_Week4.pptx)| One-Hot Encoding (OHE), BoW,     | Sparsity: > 99.99% zeros           | (TfidfVectorizer with bigrams: |
+|                       | High Dimensionality (V=500,000), | Distributional Hypothesis: Firth   | captures 'not working' order)  |
+|                       | Word-Order Loss, Firth (1957)    | "know a word by company it keeps"  |                                |
++-----------------------+----------------------------------+------------------------------------+--------------------------------+
+| Unit 2, Week 5        | Co-occurrence Matrix, Frequency  | Slide 2-7 PPMI: N=12, PMI(data,    | similarity.py                  |
+| (NLP_Unit2_Week5.pptx)| Bias, PMI & PPMI Formulations,   | science)=1.585, Cosine=1.0.        | (ComplaintDeduplicator,        |
+|                       | Scikit-Learn Smooth IDF + L2     | Slide 11-12 TF-IDF Proof: 2 docs,  | sublinear_tf=True, norm='l2',  |
+|                       | Normalization Numerical Proof    | 9 terms, doc 1 & 2 exact values    | tau=0.45 duplicate threshold)  |
++-----------------------+----------------------------------+------------------------------------+--------------------------------+
+| Unit 2, Weeks 6-7     | N-gram Language Models, Chain    | Slide 20-24 Worked Calculations:   | train.py (ngram_range=(1,2)),  |
+| (NLP_Unit2_Week6_7    | Rule, Markov Assumption, MLE     | Bigram: P=1/9, PP=1.732, H=0.7925  | genuineness.py                 |
+|  .pptx)               | Probabilities, Sentence Markers, | Trigram: P=1/6, PP=1.565, H=0.6462 | (Claude Shannon Information    |
+|                       | Perplexity, Shannon Cross-Entropy| Lower perplexity = better model    | Entropy: H(X) = -sum p log2 p) |
++-----------------------+----------------------------------+------------------------------------+--------------------------------+
+| Unit 2, Weeks 8-9     | Data Sparsity & Zero Probability,| Slide 8-11 Laplace Worked Proof:   | train.py (MultinomialNB vs     |
+| (NLP_Unit2_Week8_9    | Laplace Add-1 Smoothing, Proof   | |V|=10, P=1/676, PP=5.099, H=2.350 | LogisticRegression comparison, |
+|  .pptx)               | of Sum=1, Add-m (Lidstone),      | Branching factor: uniform H=13.29  | min_df=2 to drop rare noise)   |
+|                       | Branching Factor, Back-off, Katz | bits for 10,000 vocabulary words   |                                |
++-----------------------+----------------------------------+------------------------------------+--------------------------------+
+| Unit 2, Week 10       | Distributed Dense Representations| Discrete (V in millions, sparse)   | NLP_PROJECT_DEEP_DIVE.md       |
+| (NLP_Unit2_Week10     | vs Dense (d=100-300, dense),     | vs Dense (d=100-300, continuous).  | (Architecture Trade-off: why   |
+|  .pptx)               | Word2Vec Self-Supervised Tasks,  | Word2Vec shallow 2-layer linear    | 1,521-dim sparse linear model  |
+|                       | CBOW and Skip-gram Concepts      | projection weight matrix as lookup | was chosen over dense static)  |
++-----------------------+----------------------------------+------------------------------------+--------------------------------+
+| Unit 2, Week 11       | Deep CBOW & Skip-gram Mechanics, | Slide 6-7 CBOW: Loss = 2.2877      | train.py (LogReg L-BFGS loss), |
+| (NLP_Unit2_Week11     | Projection, Logits, Softmax Loss,| Slide 8-9 Skip-gram: Loss = 0.3400 | preprocessing.py               |
+|  .pptx)               | GloVe Matrix Factorization,      | FastText: <learning> 8 trigrams;   | (Vocabulary normalization      |
+|                       | FastText Subword Character Trigrams unseen learnings shares 7 of 9     | mirrors FastText OOV handling) |
++-----------------------+----------------------------------+------------------------------------+--------------------------------+
+| Unit 3, Week 12       | Sequential Learning, Vanilla RNN | Slide 8 Parameter Count Problem:   | train.py, evaluation.py        |
+| (NLP_Unit3_Week12     | Architecture, BPTT, Vanishing    | |V|=5, d=6 -> Wxh(30) + Whh(36) +  | (Proof: LogReg 7,610 params vs |
+|  .pptx)               | Gradients, LSTM 3 Gates & Cell,  | Why(30) = 96 weights (107 w/ bias) | LSTM >300,000 params on        |
+|                       | Bi-LSTM, Stacked LSTM, GRU Comp. | LSTM gates: Forget, Input, Output  | small 540-sample campus dataset|
++-----------------------+----------------------------------+------------------------------------+--------------------------------+
+
+
+================================================================================
+2. UNIT 1: OVERVIEW OF NLP & FOUNDATIONAL PREPROCESSING (WEEKS 1 TO 3)
+================================================================================
+
+--------------------------------------------------------------------------------
+2.1 WEEK 1: OVERVIEW, NLP TASKS, CHALLENGES & PARADIGMS
+Slide Source: NLP_Unit1_Week1.pptx (23 slides)
+--------------------------------------------------------------------------------
+
+A. SYLLABUS CONCEPTS DISCUSSED:
+- What is NLP? (Slides 5-8):
+  The branch of Artificial Intelligence concerned with enabling computers to
+  understand, interpret, manipulate, and generate human language.
+  - Conventional NLP: Focuses on handcrafted rules, regular grammars, and
+    corpus-driven statistical machine learning models.
+  - Deep Learning NLP: Focuses on multi-layer artificial neural networks,
+    recurrent architectures, attention mechanisms, and Transformers.
+- Core NLP Tasks (Slides 9-18):
+  - Text Classification: Assigning predefined labels to text sequences.
+  - Sentiment Analysis: Extracting subjectivity, polarity, and distress.
+  - Text Entailment: Assessing premise-hypothesis logical consistency.
+  - Information Retrieval: Locating documents relevant to semantic user queries.
+  - Large Language Models (LLMs): Autoregressive neural networks trained on
+    trillions of tokens to predict next tokens via Transformer layers.
+- Major NLP Challenges (Slide 19):
+  - Ambiguity at multiple levels: Lexical (words with multiple senses),
+    Syntactic (differing structural interpretations), Semantic, and Pragmatic.
+  - Sarcasm and Polysemy (e.g., "The food was wonderfully cold!").
+  - Out-of-vocabulary (OOV) terms and informal noise in student writing.
+- NLP Paradigms Timeline (Slides 21-23):
+  - 1950s-1980s: Rule-based grammars (expert systems, regex, CFGs).
+  - 1990s-2010s: Statistical NLP (N-grams, Naive Bayes, Logistic Regression).
+  - 2014-Present: Neural NLP & Foundation Models (Word2Vec, LSTM, BERT, GPT).
+
+B. HOW IT IS USED IN CAMPUSPULSE:
+- Primary Code References:
+  - server.py (Lines 1-280)
+  - app.py (Lines 1-350)
+  - train.py (Lines 80-140)
+  - priority.py (Lines 20-80)
+- Task Mapping:
+  CampusPulse converts student complaint triage into four complementary tasks:
+  1. Multi-class Text Classification: Maps complaint text into 5 administrative
+     classes: Academic, Administrative, Finance, Infrastructure, Technical.
+     Implemented using Multiclass Logistic Regression in train.py.
+  2. Sentiment Analysis: Quantifies student emotional distress and frustration
+     using NLTK's VADER (SentimentIntensityAnalyzer) in priority.py.
+  3. Information Retrieval / Deduplication: Identifies historical duplicate
+     tickets using Cosine Similarity over Sublinear TF-IDF in similarity.py.
+  4. Anti-Mischief Shield: Uses rule-based linguistics and Shannon Entropy in
+     genuineness.py to filter out troll submissions and gibberish.
+- Why Statistical ML Was Chosen Over Heavy LLMs:
+  - Inference Speed: Statistical pipeline executes in 4.2 +/- 0.8 ms on CPU.
+    A local 7B LLM or cloud API takes 400 to 2500 ms per complaint.
+  - Deterministic Explainability: Grievance committees need transparent reasons
+    for why a ticket was routed to Finance or Infrastructure. Logistic
+    regression coefficients provide exact mathematical feature attribution.
+  - Local Zero-Cost Deployment: Runs fully locally on university hardware
+    without requiring high-end GPUs or recurring external API tokens.
+
+
+--------------------------------------------------------------------------------
+2.2 WEEK 2: NLP PIPELINE, TOKEN VS TYPE, MORPHOLOGY & BYTE-PAIR ENCODING
+Slide Source: NLP_Unit1_Week2.pptx (20 slides)
+--------------------------------------------------------------------------------
+
+A. SYLLABUS CONCEPTS DISCUSSED:
+- The Text Processing Pipeline (Slides 1-4):
+  Raw student text is unstructured, noisy, and informal. It must undergo
+  cleaning, tokenization, vectorization, statistical inference, and decision
+  routing to be actionable.
+- Token vs. Type Definition (Slides 6-7):
+  - Token: Every single instance of a word occurring in running text.
+  - Type: An element of the unique vocabulary.
+  - Slide 7 Numerical Example:
+    Sentence: "they lay back on the San Francisco grass and looked at the
+               stars and their"
+    Total running words (Tokens, N) : 15 tokens
+    Unique vocabulary (Types, |V|)   : 13 types
+    (The word "the" appears 2 times; the word "and" appears 2 times).
+- Whitespace Tokenization & Its Major Flaws (Slides 8-10):
+  1. Multi-word expressions split: "San Francisco" becomes ['San', 'Francisco'].
+  2. Attached punctuation: "Hello, world!" becomes ['Hello,', 'world!'].
+  3. Domain constructs broken: Hyphenated words like "state-of-the-art" or
+     "wi-fi" are fragmented or stripped.
+  4. Out-of-Vocabulary (OOV) failure on rare and unseen words.
+- Morphology & Morphemes (Slide 12):
+  - Morpheme: The smallest meaning-bearing unit of a language.
+  - Examples: "fox" = 1 morpheme; "cats" = 2 morphemes {cat, -s};
+    "unlikeliest" = 3 morphemes {un-, likely, -est}.
+- Subword Tokenization & Byte-Pair Encoding (BPE) (Slides 13-18):
+  - Training Part (Token Learner):
+    1. Pre-tokenize corpus into words and append an end-of-word marker '_'.
+    2. Initialize vocabulary with all unique individual characters.
+    3. Count all adjacent symbol pairs across words weighted by frequency.
+    4. Merge the most frequent pair (A, B) into a new symbol 'AB'.
+    5. Repeat until k merges are completed.
+  - Testing Part (Token Segmenter):
+    Applies the learned merge rules in the exact order of learning.
+
+B. HOW IT IS USED IN CAMPUSPULSE:
+- Primary Code Reference:
+  - preprocessing.py (Lines 30-115)
+- Pipeline Implementation:
+  - Input: Raw student complaint string (text: str).
+  - Processing Details:
+    1. Contraction Expansion: Replaces 35+ English contractions with their
+       expanded forms using regular expressions (e.g., "can't" -> "can not",
+       "won't" -> "will not", "didn't" -> "did not").
+    2. Campus Acronym Expansion: Replaces common campus abbreviations with
+       standard administrative tokens:
+       - "hod"  -> "head of department"
+       - "erp"  -> "enterprise resource planning"
+       - "wifi" -> "wireless fidelity"
+       - "cgpa" -> "cumulative grade point average"
+       - "lab"  -> "laboratory"
+    3. Hyphen Preservation Regex: Unlike naive tokenizers that strip all
+       punctuation, CampusPulse uses:
+       re.sub(r'[^a-zA-Z0-9\s\-]', ' ', text)
+       This explicitly preserves hyphenated compound technical tokens such as
+       "wi-fi", "air-conditioner", and "state-of-the-art".
+  - Output: Normalized, cleaned string and token list ready for vectorization.
+
+
+--------------------------------------------------------------------------------
+2.3 WEEK 3: NORMALIZATION, NEGATION, POS, NER & BPE WORKED PROBLEM
+Slide Source: NLP_Unit1_Week3.pptx (22 slides)
+--------------------------------------------------------------------------------
+
+A. SYLLABUS CONCEPTS DISCUSSED:
+- Stop Word Removal Caveats (Slides 2, 5):
+  Removing frequent words reduces noise, BUT removing negation words
+  ("not", "no", "never", "cannot") destroys sentiment polarity.
+- Stemming vs. Lemmatization (Slides 3, 6, 7):
+  - Stemming: Heuristic rule-based suffix chopping (Porter, Snowball).
+    Chopping introduces spelling errors: "university" -> "univers",
+    "academics" -> "academ", "grades" -> "grade".
+  - Lemmatization: Lexicon-based reduction to morphological lemma using POS
+    context (e.g., "sang", "sung", "sings" -> "sing").
+- Part of Speech (POS) Tagging (Slides 8-12):
+  Assigns grammatical categories using the Penn Treebank 36-tag set:
+  NN (Noun singular), NNS (Noun plural), NNP (Proper noun), VB (Verb base),
+  VBG (Verb gerund), JJ (Adjective), RB (Adverb), CD (Cardinal number).
+  Ambiguity resolution: "Hand me that book" (NN) vs. "Book that flight" (VB).
+- Named Entity Recognition (NER) (Slides 13-15):
+  Detects and classifies proper entities into predefined classes:
+  PERSON, ORG, GPE, MONEY, DATE.
+  Example: "Google (ORG) is looking at buying U.K. (GPE) startup for $1B (MONEY)".
+- Slide 18-21: BPE 6-Merge Exact Numerical Worked Problem:
+  - Initial Corpus Word Frequencies:
+    +----------+-----------+
+    | Word     | Frequency |
+    +----------+-----------+
+    | read     | 3         |
+    | reads    | 2         |
+    | reader   | 2         |
+    | reading  | 2         |
+    | unread   | 1         |
+    | readers  | 1         |
+    +----------+-----------+
+    Total word occurrences: 3 + 2 + 2 + 2 + 1 + 1 = 11 words.
+    Base vocabulary: { _, a, d, e, g, i, n, r, s, u }
+  - 6 Merge Iterations Step-by-Step:
+    Merge 1: Most frequent pair (r, e)     -> New token: "re"
+    Merge 2: Most frequent pair (re, a)    -> New token: "rea"
+    Merge 3: Most frequent pair (rea, d)   -> New token: "read"
+    Merge 4: Most frequent pair (read, _)  -> New token: "read_"
+    Merge 5: Most frequent pair (read, e)  -> New token: "reade"
+    Merge 6: Most frequent pair (reade, r) -> New token: "reader"
+  - Slide 20-21: Evaluation on Unseen & Out-of-Vocabulary (OOV) Words:
+    - "read"     -> read_ (seen in training)
+    - "unread"   -> u n read_ (seen in training)
+    - "unreader" -> u n reader _ (OOV word successfully segmented!)
+    - "readable" -> read a b l e _
+      Note: The characters 'b' and 'l' never appeared in any training subword,
+      yet BPE tokenizes it cleanly without crashing by falling back to base
+      character tokens.
+
+B. HOW IT IS USED IN CAMPUSPULSE:
+- Primary Code References:
+  - preprocessing.py (Lines 20-30, 85-115)
+  - priority.py (Lines 70-115)
+- Strict Negation Preservation:
+  In preprocessing.py, standard NLTK stopwords are loaded, but 23 negation words
+  are explicitly excluded from removal:
+  NEGATION_WORDS = {'not', 'no', 'nor', 'neither', 'never', 'none',
+                    'nobody', 'cannot', 'without', "won't", "can't", ...}
+  Why: In complaint triage, if a student submits "wifi is not working in lab",
+  standard stopword removal yields ['wifi', 'working', 'lab'], causing VADER
+  sentiment to falsely evaluate the text as positive ("working")! Preserving
+  "not" ensures correct negative sentiment scoring.
+- Rejection of Stemming:
+  Snowball stemming was evaluated and rejected because it corrupts university
+  administrative jargon ("university" -> "univers", "faculty" -> "faculti").
+  CampusPulse uses exact-token n-grams with abbreviation expansion instead.
+- Domain-Specific Named Entity / Urgency Extraction:
+  In priority.py, an entity matcher detects safety and administrative triggers:
+  - Urgency Triggers: "emergency", "immediately", "critical", "electric shock",
+    "fire", "leak", "broken".
+  - Academic Impact Triggers: "exam", "midsem", "endsem", "hall ticket",
+    "grades", "cgpa", "scholarship deadline".
+
+
+================================================================================
+3. UNIT 2: FEATURE REPRESENTATIONS & LANGUAGE MODELING (WEEKS 4 TO 11)
+================================================================================
+
+--------------------------------------------------------------------------------
+3.1 WEEK 4: DISCRETE REPRESENTATIONS, ONE-HOT ENCODING, BOW & FIRTH
+Slide Source: NLP_Unit2_Week4.pptx (12 slides)
+--------------------------------------------------------------------------------
+
+A. SYLLABUS CONCEPTS DISCUSSED:
+- Discrete Text Representations (Slides 5-10):
+  - One-Hot Encoding (OHE): Each word is an orthogonal binary vector of length |V|
+    with a single 1 at index i and 0 elsewhere:
+    x_hotel = [0, 0, ..., 1, ..., 0]
+    x_motel = [0, 1, ..., 0, ..., 0]
+  - Three Fatal Limitations of One-Hot Encoding:
+    1. High Dimensionality: Length |V| is typically 100,000 to 500,000.
+    2. Extreme Sparsity: Over 99.99% of entries in each vector are zeros.
+    3. Orthogonality & Zero Semantic Distance:
+       Dot product: u . v = 0
+       Cosine Similarity(x_hotel, x_motel) = 0
+       The computer has no mathematical concept that "hotel" and "motel" are
+       near-synonyms.
+- Bag-of-Words (BoW) & Word-Order Loss (Slide 6):
+  Collapses sentences into word occurrence counts, losing syntax and sequence.
+  Example of BoW failure:
+  "not bad, very good" and "not good, very bad" produce identical count vectors!
+- The Distributional Hypothesis (Slide 12):
+  J.R. Firth (1957): "You shall know a word by the company it keeps!"
+  Words appearing in similar environments have similar meanings. Meaning is
+  represented as a coordinate in a continuous vector space.
+
+B. HOW IT IS USED IN CAMPUSPULSE:
+- Primary Code References:
+  - train.py (Lines 90-105)
+  - similarity.py (Lines 40-55)
+- Resolving the Bag-of-Words Word-Order Collapse:
+  CampusPulse configures TfidfVectorizer(ngram_range=(1, 2), min_df=2):
+  By expanding features to include both unigrams and bigrams, word order is
+  preserved for key semantic phrases:
+  "not working"   -> Treated as an atomic bigram feature
+  "cannot access" -> Distinct bigram feature
+  "fee paid"      -> Distinct bigram feature
+  "grade changed" -> Distinct bigram feature
+  This captures local syntax without requiring heavy constituency parsing.
+
+
+--------------------------------------------------------------------------------
+3.2 WEEK 5: CO-OCCURRENCE MATRICES, PMI, PPMI & TF-IDF NUMERICAL PROOF
+Slide Source: NLP_Unit2_Week5.pptx (12 slides)
+--------------------------------------------------------------------------------
+
+A. SYLLABUS CONCEPTS DISCUSSED:
+- Word Co-occurrence Matrix (Slides 1-3):
+  Counts how often words co-occur within a symmetric context window (size C=1).
+  Slide 2 Toy Corpus:
+  Sentence 1: "data science drives insight"
+  Sentence 2: "data analysis drives insight"
+  
+  Co-occurrence Matrix C (Context Window 1):
+  +--------------+------+---------+----------+--------+---------+---------------+
+  | Target Word  | data | science | analysis | drives | insight | Marginal C(w) |
+  +--------------+------+---------+----------+--------+---------+---------------+
+  | data         | 0    | 1       | 1        | 0      | 0       | 2             |
+  | science      | 1    | 0       | 0        | 1      | 0       | 2             |
+  | analysis     | 1    | 0       | 0        | 1      | 0       | 2             |
+  | drives       | 0    | 1       | 1        | 0      | 2       | 4             |
+  | insight      | 0    | 0       | 0        | 2      | 0       | 2             |
+  +--------------+------+---------+----------+--------+---------+---------------+
+  Total co-occurrences (N) = 2 + 2 + 2 + 4 + 2 = 12
+
+- Cosine Similarity on Co-occurrence Matrix (Slide 3):
+  Cosine(u, v) = (u . v) / (||u|| * ||v||)
+  v_science  = [1, 0, 0, 1, 0]
+  v_analysis = [1, 0, 0, 1, 0]
+  Cosine(v_science, v_analysis) = (1*1 + 0 + 0 + 1*1 + 0) / (sqrt(2) * sqrt(2))
+                                = 2 / 2 = 1.0
+  Key Insight: Although "science" and "analysis" never co-occur directly, their
+  cosine similarity is 1.0 because they share identical contexts ("data", "drives")!
+
+- Pointwise Mutual Information (PMI) & Positive PMI (PPMI) (Slides 4-7):
+  PMI(w, c)  = log2( P(w, c) / (P(w) * P(c)) )
+             = log2( (C(w, c) * N) / (C(w) * C(c)) )
+  PPMI(w, c) = max(0, PMI(w, c))
+  
+  Slide 6 Worked Numerical Values:
+  - For (data, science):
+    PMI = log2( (1 * 12) / (2 * 2) ) = log2(3) = 1.585
+  - For (science, drives):
+    PMI = log2( (1 * 12) / (2 * 4) ) = log2(1.5) = 0.585
+  - For (drives, insight):
+    PMI = log2( (2 * 12) / (4 * 2) ) = log2(3) = 1.585
+  - Non-co-occurring pairs: C(w, c) = 0 -> PMI -> -infinity -> PPMI = 0.0
+
+- TF-IDF Theory vs. Scikit-Learn Smooth Implementation (Slides 8-12):
+  - Standard Theory: TF-IDF(t, d, D) = TF(t, d) * log( |D| / DF(t) )
+    Flaw: If a term appears in all documents (DF = |D|), log(1) = 0, wiping out
+    the feature entirely.
+  - Scikit-Learn Smooth IDF Formula (Slide 10):
+    IDF(t, D) = ln( (1 + |D|) / (1 + DF(t)) ) + 1
+  - L2 Normalization:
+    v_norm = v / ||v||_2 = v / sqrt( sum(v_i^2) )
+  
+  Slide 11-12 Complete Step-by-Step Numerical Proof:
+  - Corpus:
+    Doc 1: "The stock price of google jumps on the earning data today"
+    Doc 2: "Google plunge on China Data!"
+  - Vocabulary (9 terms):
+    ['china', 'data', 'earning', 'google', 'jumps', 'plunge', 'price',
+     'stock', 'today']
+  - Document Frequencies (|D| = 2):
+    DF(data) = 2, DF(google) = 2
+    All other 7 terms: DF = 1
+  - Calculated Smooth IDFs:
+    IDF(data)   = ln( (1 + 2) / (1 + 2) ) + 1 = ln(1) + 1 = 1.0000
+    IDF(google) = ln( (1 + 2) / (1 + 2) ) + 1 = ln(1) + 1 = 1.0000
+    IDF(rare)   = ln( (1 + 2) / (1 + 1) ) + 1 = ln(1.5) + 1
+                = 0.405465 + 1 = 1.4055
+  - Document 1 L2 Normalization:
+    Unnormalized vector: 2 terms with 1.0000, 5 terms with 1.4055
+    L2 Norm = sqrt( 2*(1.0)^2 + 5*(1.4055)^2 ) = sqrt( 2 + 9.8767 ) = 3.4463
+    Normalized data   = 1.0000 / 3.4463 = 0.2902
+    Normalized google = 1.0000 / 3.4463 = 0.2902
+    Normalized jumps  = 1.4055 / 3.4463 = 0.4078
+    Normalized price  = 1.4055 / 3.4463 = 0.4078
+    (Exactly matches Scikit-Learn output on Slide 11!)
+  - Document 2 L2 Normalization:
+    Unnormalized vector: 2 terms with 1.0000, 2 terms with 1.4055
+    L2 Norm = sqrt( 2*(1.0)^2 + 2*(1.4055)^2 ) = sqrt( 2 + 3.9507 ) = 2.4394
+    Normalized china  = 1.4055 / 2.4394 = 0.5762
+    Normalized data   = 1.0000 / 2.4394 = 0.4099
+    (Exactly matches Scikit-Learn output on Slide 11!)
+
+B. HOW IT IS USED IN CAMPUSPULSE:
+- Primary Code References:
+  - similarity.py (ComplaintDeduplicator, Lines 40-95)
+  - train.py (Lines 90-100)
+- Sublinear TF Scaling Implementation:
+  In train.py, sublinear_tf=True is enabled.
+  Formula: TF_sublinear = 1 + ln(TF) if TF > 0, else 0.
+  Why: Prevents a student who repeats "wifi wifi wifi broken" 15 times from
+  dominating the feature matrix over a student who writes it once.
+- Fast Duplicate Detection Engine:
+  Because all vectors are L2-normalized during extraction, the cosine
+  similarity between a new query vector q and historical ticket vectors d_i
+  simplifies to a fast inner dot product:
+  Cosine Similarity(q, d_i) = sum( q_j * d_ij )
+  Thresholds:
+  - High Confidence Duplicate: Cosine Similarity >= 0.70
+  - Moderate Similarity: 0.45 <= Cosine Similarity < 0.70
+  - Unique Ticket: Cosine Similarity < 0.45
+  Performance: Evaluated on 44 benchmark ticket pairs in tests/test_similarity.py,
+  achieving Precision: 100.0%, Recall: 95.45%, and F1-Score: 0.9767.
+
+
+--------------------------------------------------------------------------------
+3.3 WEEKS 6 & 7: N-GRAM LMS, MARKOV CHAIN, PERPLEXITY & SHANNON ENTROPY
+Slide Source: NLP_Unit2_Week6_7.pptx (24 slides)
+--------------------------------------------------------------------------------
+
+A. SYLLABUS CONCEPTS DISCUSSED:
+- Language Models & The Chain Rule of Probability (Slides 2-6):
+  A Language Model computes the joint probability of a sequence of words:
+  P(W) = P(w1, w2, ..., wn)
+  Using the general Chain Rule:
+  P(w1, ..., wn) = P(w1) * P(w2|w1) * P(w3|w1:2) * ... * P(wn|w1:n-1)
+  The Problem: Long conditioning histories become impossible to estimate
+  empirically because long phrases never repeat identically in finite text.
+- The Markov Approximation (Slides 7-8):
+  Conditions only on the preceding (N-1) words:
+  - Unigram (N=1): P(w_k)
+  - Bigram  (N=2): P(w_k | w_{k-1})
+  - Trigram (N=3): P(w_k | w_{k-2}, w_{k-1})
+- Maximum Likelihood Estimation (MLE) (Slides 9-11):
+  Bigram:  P_MLE(w_k | w_{k-1}) = C(w_{k-1}, w_k) / C(w_{k-1})
+  Trigram: P_MLE(w_k | w_{k-2}, w_{k-1}) = C(w_{k-2}, w_{k-1}, w_k) / C(w_{k-2}, w_{k-1})
+  Sentence markers: <s> and </s> augment sequences so boundaries are preserved.
+- Extrinsic vs. Intrinsic Evaluation (Slides 15-16):
+  - Extrinsic (in-vivo): Evaluating on an end task (e.g., ticket triage accuracy).
+  - Intrinsic (in-vitro): Evaluating predictive uncertainty using Perplexity.
+- Perplexity & Claude Shannon's Information Theory (Slides 17-19):
+  Perplexity (PP) measures the effective branching factor:
+  PP(W) = P(W)^(-1/n) = sqrt[n]( 1 / prod( P(w_k | history) ) )
+  Cross-Entropy in base 2:
+  H(W)  = - (1/n) * sum( log2( P(w_k | history) ) )
+  PP(W) = 2^H(W)
+  Rule: Holding the test set constant, lower perplexity = better language model!
+
+- Slide 20-24: Complete Bigram vs. Trigram Worked Problem:
+  - Training Corpus:
+    1. <s> I am Sam </s>
+    2. <s> Sam I am </s>
+    3. <s> I do not like green eggs </s>
+  - Test Sentence: <s> I am Sam </s> (n = 4 tokens: I, am, Sam, </s>)
+  - Bigram Calculations (Slide 21):
+    P(I | <s>)   = C(<s>, I) / C(<s>)     = 2 / 3 = 0.6667
+    P(am | I)    = C(I, am) / C(I)        = 2 / 3 = 0.6667
+    P(Sam | am)  = C(am, Sam) / C(am)     = 1 / 2 = 0.5000
+    P(</s> | Sam)= C(Sam, </s>) / C(Sam)  = 1 / 2 = 0.5000
+    P(W) = (2/3) * (2/3) * (1/2) * (1/2)  = 4 / 36 = 1/9 = 0.1111
+    Bigram Perplexity: PP(W) = (1/9)^(-1/4) = 9^(1/4) = sqrt(3) = 1.732
+    Cross-Entropy: H(W) = -1/4 * [2*log2(2/3) + 2*log2(1/2)]
+                        = -1/4 * [-1.1699 - 2.0] = 0.7925 bits/word
+  - Trigram Calculations (Slide 23-24):
+    P(I | <s>, <s>)     = C(<s>, <s>, I) / C(<s>, <s>)   = 2 / 3 = 0.6667
+    P(am | <s>, I)      = C(<s>, I, am) / C(<s>, I)      = 1 / 2 = 0.5000
+    P(Sam | I, am)      = C(I, am, Sam) / C(I, am)       = 1 / 2 = 0.5000
+    P(</s> | am, Sam)   = C(am, Sam, </s>) / C(am, Sam)  = 1 / 1 = 1.0000
+    P(W) = (2/3) * (1/2) * (1/2) * 1      = 2 / 12 = 1/6 = 0.1667
+    Trigram Perplexity: PP(W) = (1/6)^(-1/4) = 6^(1/4) = 1.565
+    Cross-Entropy: H(W) = -1/4 * [log2(2/3) + log2(1/2) + log2(1/2) + log2(1)]
+                        = -1/4 * [-2.5850] = 0.6462 bits/word
+  - Conclusion: The Trigram model achieves lower perplexity (1.565 vs 1.732)
+    because additional history resolves ambiguity.
+
+B. HOW IT IS USED IN CAMPUSPULSE:
+- Primary Code References:
+  - genuineness.py (GenuinenessShield, Lines 40-65)
+  - train.py (Lines 90-100)
+- Claude Shannon's Information Entropy in Anti-Mischief Shield:
+  Formula: H(X) = - sum( p(x_i) * log2( p(x_i) ) )
+  Why: Bored or malicious students submit keyboard mashing ("asdfghjkl",
+  "qwertyqwerty", "zzzzzzzz") to test the system.
+  Execution:
+  - Normal English grievance sentences have character entropy between 3.2 and
+    4.5 bits/char.
+  - Single-character spam ("aaaaaaa") has character entropy H < 1.0 bit/char.
+  - Gibberish without natural consonant-vowel transitions triggers immediate
+    penalties, dropping genuineness score below 40.0.
+
+
+--------------------------------------------------------------------------------
+3.4 WEEKS 8 & 9: DATA SPARSITY, LAPLACE SMOOTHING & INTERPOLATION
+Slide Source: NLP_Unit2_Week8_9.pptx (13 slides)
+--------------------------------------------------------------------------------
+
+A. SYLLABUS CONCEPTS DISCUSSED:
+- Data Sparsity & Zero-Probability Problem (Slides 1-3):
+  A training corpus contains only a fraction of valid language combinations.
+  If an unseen n-gram appears in a test sentence, its count is 0:
+  P(W) = prod( P(w_k | history) ) = 0 -> Perplexity explodes to infinity!
+- Laplace (Add-1) Smoothing (Slide 4):
+  Adds a virtual count of 1 to every vocabulary pair:
+  P_Laplace(w_k | w_{k-1}) = ( C(w_{k-1}, w_k) + 1 ) / ( C(w_{k-1}) + |V| )
+  Proof that it sums to 1:
+  sum_{w_k in V} [ (C(w_{k-1}, w_k) + 1) / (C(w_{k-1}) + |V|) ]
+  = [ sum(C) + sum(1) ] / [ C(w_{k-1}) + |V| ]
+  = [ C(w_{k-1}) + |V| ] / [ C(w_{k-1}) + |V| ] = 1.0
+- Add-m (Lidstone) Smoothing (Slide 5):
+  Replaces integer 1 with fractional count m in (0, 1) (e.g., m = 0.1).
+  Prevents over-allocating probability mass to unseen events when |V| is large.
+- Effective Branching Factor (Slides 6-7):
+  Perplexity equals the effective branching factor.
+  Uniform uncertainty over |V| = 10,000 words:
+  H = log2(10,000) = 13.29 bits, PP = 10,000.
+  Skewed natural text concentrates mass, yielding H < 13.29 and PP << 10,000.
+- Slide 8-11: Laplace Smoothed Worked Numerical Example:
+  Corpus: <s> I am Sam </s>, <s> Sam I am </s>, <s> I do not like green eggs </s>
+  Vocabulary |V| = 10: { <s>, </s>, I, am, Sam, do, not, like, green, eggs }
+  Unigram counts: C(<s>)=3, C(I)=3, C(am)=2, C(Sam)=2.
+  Bigram counts: C(<s>, I)=2, C(I, am)=2, C(am, Sam)=1, C(Sam, </s>)=1.
+  Test Sentence: <s> I am Sam </s> (n = 4)
+  Smoothed Probabilities:
+  P_Laplace(I | <s>)   = (2 + 1) / (3 + 10) = 3 / 13 = 0.23077
+  P_Laplace(am | I)    = (2 + 1) / (3 + 10) = 3 / 13 = 0.23077
+  P_Laplace(Sam | am)  = (1 + 1) / (2 + 10) = 2 / 12 = 1/6 = 0.16667
+  P_Laplace(</s> | Sam)= (1 + 1) / (2 + 10) = 2 / 12 = 1/6 = 0.16667
+  Sequence Probability:
+  P(W) = (3/13) * (3/13) * (1/6) * (1/6) = 9 / (169 * 36) = 1 / 676 = 0.001479
+  Smoothed Perplexity:
+  PP(W) = (1/676)^(-1/4) = (676)^(1/4) = sqrt(26) = 5.099
+  Cross-Entropy:
+  H(W) = -1/4 * [ 2*log2(3/13) + 2*log2(1/6) ]
+       = -1/4 * [ -4.2309 - 5.1699 ] = 2.3502 bits/word
+       PP(W) = 2^2.3502 = 5.099
+- Back-off & Linear Interpolation (Slides 12-13):
+  - Linear Interpolation: Blends trigram, bigram, and unigram probabilities:
+    P(w_k | w_{k-2}, w_{k-1}) = lambda3*P_3 + lambda2*P_2 + lambda1*P_1
+    where sum(lambda_i) = 1.
+  - Katz Back-off: Uses higher-order if count > 0; falls back to discounted
+    lower-order with normalization weight alpha.
+
+B. HOW IT IS USED IN CAMPUSPULSE:
+- Primary Code References:
+  - train.py (Lines 110-135)
+  - evaluation.py (Lines 50-100)
+- Naive Bayes Baseline with Laplace Smoothing:
+  CampusPulse evaluated MultinomialNB(alpha=1.0), where alpha=1.0 is Add-1
+  Laplace smoothing.
+  Audit Result: Add-1 smoothed Naive Bayes achieved only 62.71% test accuracy
+  because it assumes feature independence:
+  P(x | c) = prod( P(x_j | c) )
+  Because unigrams and bigrams are correlated ("wifi" and "wifi broken" co-occur),
+  Naive Bayes double-counts evidence.
+- Transition to Logistic Regression:
+  Multiclass Logistic Regression (C=2.0, L2 penalty) directly learns joint
+  weights for correlated features, lifting accuracy to 86.44% (+23.73% gain!).
+
+
+--------------------------------------------------------------------------------
+3.5 WEEK 10: DISTRIBUTED DENSE REPRESENTATIONS & WORD2VEC ARCHITECTURES
+Slide Source: NLP_Unit2_Week10.pptx (5 slides)
+--------------------------------------------------------------------------------
+
+A. SYLLABUS CONCEPTS DISCUSSED:
+- Discrete vs. Dense Representations (Slide 2):
+  - Discrete (One-Hot, BoW, TF-IDF): Long (length |V| in millions), highly
+    sparse (most elements zero).
+  - Dense (Word2Vec, GloVe): Short (d = 100 to 300), continuous floating values.
+  - Why Dense Vectors? Fewer weights to tune, better generalization on rare
+    synonyms, compact feature representation.
+- Word2Vec Methodology (Slide 4):
+  - Self-Supervised auxiliary prediction task (no human annotations required).
+  - Shallow 2-layer neural network with a LINEAR hidden projection layer (no
+    activation function like ReLU or Sigmoid) and a Softmax output layer.
+  - The hidden weight matrix W (|V| x d) acts as the final embedding lookup table.
+- Two Word2Vec Architectures (Slide 5):
+  1. Continuous Bag of Words (CBOW): Predicts center target word from context.
+  2. Skip-gram: Predicts surrounding context words from center target word.
+
+B. HOW IT IS USED IN CAMPUSPULSE:
+- Architectural Decision (NLP_PROJECT_DEEP_DIVE.md, Section 7):
+  Why CampusPulse chose 1,521-dim Sublinear TF-IDF over dense static Word2Vec:
+  1. Specificity of Grievance Vocabulary: Campus grievances contain hyper-local
+     jargon ("mess food", "warden", "erp backlog", "hall ticket"). General
+     Word2Vec models trained on Wikipedia lack campus-specific clustering.
+  2. Feature Interpretability: Logistic regression coefficients provide direct
+     attribution (e.g., top positive features for Technical are "wifi",
+     "login", "portal", "server"). Dense Word2Vec averages vectors across a
+     sentence, destroying individual word attribution.
+  3. Latency: Linear model evaluates in 4.2 ms on CPU with zero matrix
+     aggregation overhead.
+
+
+--------------------------------------------------------------------------------
+3.6 WEEK 11: DEEP CBOW, SKIP-GRAM, GLOVE & FASTTEXT WORKED PROBLEMS
+Slide Source: NLP_Unit2_Week11.pptx (16 slides)
+--------------------------------------------------------------------------------
+
+A. SYLLABUS CONCEPTS DISCUSSED:
+- CBOW Mathematical Architecture (Slides 1-2):
+  Input: 2C one-hot vectors x_{t+j} in R^{1 x |V|}.
+  Projection Layer (average):
+  h = (1 / 2C) * sum( x_{t+j} * W ) in R^{1 x d}
+  Logits: z = h * W' in R^{1 x |V|}
+  Softmax: y_hat_i = exp(z_i) / sum( exp(z_k) )
+  Cross-Entropy Loss: Loss = - ln( y_hat_{target} )
+
+- Slide 6-7: CBOW Worked Numerical Problem:
+  Vocabulary |V| = 4: {'deep': 0, 'learning': 1, 'builds': 2, 'models': 3}
+  Embedding dimension d = 2, Context words: "deep" and "builds", Target: "learning"
+  Given Matrices:
+  W =  [ [ 2, -1],     W' = [ [ 1, -1, 2,  0],
+         [ 0,  3],            [ 0,  1, 1, -2] ]
+         [-1,  1],
+         [ 1,  0] ]
+  Step 1: Hidden Projection:
+  v_deep   = Row 0(W) = [ 2, -1]
+  v_builds = Row 2(W) = [-1,  1]
+  h = 0.5 * ( [2, -1] + [-1, 1] ) = [0.5, 0.0]
+  Step 2: Logit Computation:
+  z = [0.5, 0.0] * W' = [0.5, -0.5, 1.0, 0.0]
+  Step 3: Softmax Probabilities:
+  exp(0.5)  = 1.6487
+  exp(-0.5) = 0.6065
+  exp(1.0)  = 2.7183
+  exp(0.0)  = 1.0000
+  Sum = 5.9735
+  y_hat = [ 0.2760, 0.1015, 0.4551, 0.1674 ]
+  Step 4: Cross-Entropy Loss for target "learning" (index 1):
+  Loss = - ln( y_hat[1] ) = - ln(0.1015) = 2.2877
+
+- Skip-gram Architecture & Worked Numerical Problem (Slides 3-4, 8-9):
+  Center word: "sat" (x_sat = [0, 1, 0, 0]^T). Context target: "on".
+  Projection vector: h = Row 1(W) = [-1, 1].
+  Given W' = [ [ 1, 0, -1, 2],
+               [-1, 1,  1, 0] ]
+  Logits: z = [-1, 1] * W' = [-2, 1, 2, -2]
+  Softmax Probabilities:
+  exp(-2) = 0.1353, exp(1) = 2.7183, exp(2) = 7.3891, exp(-2) = 0.1353
+  Sum = 10.378
+  y_hat = [ 0.013, 0.262, 0.712, 0.013 ]
+  Loss for target "on" (index 2):
+  Loss = - ln(0.712) = 0.3400
+
+- Global Vectors (GloVe) (Slides 10-12):
+  Minimizes squared log-difference on whole-corpus co-occurrence matrix X_ij:
+  J = sum( f(X_ij) * ( w_i . w_j_tilde + b_i + b_j_tilde - ln(X_ij) )^2 )
+  Weighting function f(x) = (x / x_max)^alpha caps high-frequency stopwords.
+
+- FastText: Subword Character N-grams (Slides 13-15):
+  Decomposes words into character n-grams (n=3).
+  Example: <learning> -> <le, lea, ear, arn, rni, nin, ing, ng> (8 trigrams + word)
+  For unseen OOV word "learnings", 7 of its 9 trigrams match "learning".
+  Summing subword vectors yields a vector close to "learning" without OOV crash!
+
+B. HOW IT IS USED IN CAMPUSPULSE:
+- Primary Code Reference:
+  - train.py (Lines 95-105)
+- Cross-Entropy Minimization:
+  Multiclass Logistic Regression optimizes the exact same multinomial
+  cross-entropy loss function via the L-BFGS solver with L2 regularization (C=2.0).
+- Mirroring FastText Subword Robustness:
+  CampusPulse's custom preprocessing pipeline maps misspellings, campus slang,
+  and inflections into standard vocabulary tokens, achieving the OOV resilience
+  of FastText while retaining the full transparency of a linear model.
+
+
+================================================================================
+4. UNIT 3: ARTIFICIAL NEURAL NETWORKS FOR NLP (WEEK 12)
+================================================================================
+
+--------------------------------------------------------------------------------
+4.1 WEEK 12: SEQUENTIAL LEARNING, RNNS, LSTMS, GRUS & PARAMETER COUNT
+Slide Source: NLP_Unit3_Week12.pptx (18 slides)
+--------------------------------------------------------------------------------
+
+A. SYLLABUS CONCEPTS DISCUSSED:
+- Sequential Data Learning (Slide 5):
+  Sequence order matters, current input depends on past tokens, and input length
+  varies. Traditional feedforward networks fail because they process inputs
+  independently without temporal recurrence.
+- Vanilla RNN Cell Architecture (Slides 6-7):
+  At each time step t, reuses shared parameter matrices:
+  h_t = tanh( W_hh * h_{t-1} + W_xh * x_t + b_h )
+  y_t = softmax( W_hy * h_t + b_y )
+  Initial hidden state h_0 is initialized to zeros.
+- Slide 8 Parameter Count Numerical Worked Problem:
+  - Problem Statement: Predict next word from sequence using an RNN.
+    Vocabulary |V| = 5: {'I', 'he', 'go', 'walk', 'eat'}.
+    One-hot input x_t has dimension 5.
+    Hidden dimension d_h = 6.
+    Ignore bias terms. Calculate total trainable parameters.
+  - Step-by-Step Derivation:
+    1. Input-to-Hidden Matrix (W_xh): Shape (d_h x |V|) = 6 x 5 = 30 weights.
+    2. Hidden-to-Hidden Matrix (W_hh): Shape (d_h x d_h) = 6 x 6 = 36 weights.
+    3. Hidden-to-Output Matrix (W_hy): Shape (|V| x d_h) = 5 x 6 = 30 weights.
+    Total Parameters (ignoring bias) = 30 + 36 + 30 = 96 parameters!
+    (Bonus: If biases included: b_h (6) + b_y (5) = 11 -> Total = 107 parameters).
+- Vanishing & Exploding Gradients in BPTT (Slide 7, 11):
+  Gradients propagated backward through time scale with powers of W_hh.
+  If eigenvalues < 1, gradients vanish exponentially -> Cannot learn long-term
+  dependencies. If > 1, gradients explode to infinity.
+- Long Short-Term Memory (LSTM) Architecture (Slides 11-14):
+  Introduces an explicit linear Cell State (C_t) acting as an error conveyor:
+  1. Forget Gate:   f_t = sigmoid( W_f * [h_{t-1}, x_t] + b_f )
+  2. Input Gate:    i_t = sigmoid( W_i * [h_{t-1}, x_t] + b_i )
+  3. Candidate:     C_tilde_t = tanh( W_c * [h_{t-1}, x_t] + b_c )
+  4. Cell State:    C_t = f_t (elem_mult) C_{t-1} + i_t (elem_mult) C_tilde_t
+  5. Output Gate:   o_t = sigmoid( W_o * [h_{t-1}, x_t] + b_o )
+  6. Hidden State:  h_t = o_t (elem_mult) tanh( C_t )
+- LSTM Variants (Slides 15-16):
+  - Bidirectional LSTM: Processes sequence forward and backward (essential for
+    POS tagging where future context disambiguates words).
+  - Stacked LSTM: Multiple layers placed vertically (Layer 1 syntax, Layer 2 semantics).
+- Gated Recurrent Unit (GRU) (Slides 17-18):
+  Merges Forget and Input gates into an Update Gate (z_t) and replaces Cell
+  State with a Reset Gate (r_t), cutting parameters by 25%.
+- Slide 18 Comprehensive Comparison Table:
+  +----------------------+-------------+-----------------------+-------------------+
+  | Feature              | Vanilla RNN | LSTM                  | GRU               |
+  +----------------------+-------------+-----------------------+-------------------+
+  | Gates per Unit       | 0 (None)    | 3 (Forget, Input, Out)| 2 (Update, Reset) |
+  | Internal States      | h_t only    | h_t and Cell State C_t| h_t only          |
+  | Vanishing Gradient   | Severe      | Resolved via C_t      | Resolved          |
+  | Parameter Footprint  | Lowest      | Highest (4x matrices) | Medium (3x mat)   |
+  | Training Speed       | Fast/Unstable| Slower, computationally 25% faster than  |
+  |                      |             | intensive             | LSTM              |
+  +----------------------+-------------+-----------------------+-------------------+
+
+B. HOW IT IS USED IN CAMPUSPULSE:
+- Architectural Decision (Statistical ML vs Deep Recurrent Networks):
+  During project design, an LSTM classifier was evaluated against the Sublinear
+  TF-IDF + Logistic Regression pipeline.
+  Why Logistic Regression was Selected:
+  1. Sample Complexity & Severe Overfitting:
+     - Dataset size: 540 student complaints (481 training samples).
+     - An LSTM with embedding dimension 128 and hidden dimension 128 requires:
+       Params_LSTM ~= 4 * [ (128 + 128)*128 + 128 ] + (1521 * 128) + (128 * 5)
+                   ~= 327,000 trainable parameters!
+       Training 327,000 weights on 481 samples guarantees severe catastrophic
+       overfitting and massive variance.
+     - Multiclass Logistic Regression has exactly:
+       5 classes * 1,521 features + 5 intercepts = 7,610 parameters.
+       A 43x smaller parameter footprint ensures robust generalization
+       (86.44% test accuracy, 0.8790 Macro F1).
+  2. Training Speed: Logistic Regression trains in 0.42 seconds on CPU;
+     LSTM requires multi-minute GPU epochs.
+  3. Administrative Auditability: University committees require transparent,
+     legally defensible explanations for why a ticket was escalated. Logistic
+     regression feature weights provide instant mathematical proof of decisions.
+
+
+================================================================================
+5. END-TO-END PROCESSING PIPELINE & EXACT INPUT/OUTPUT SPECIFICATIONS
+================================================================================
+
+PIPELINE LIFECYCLE DIAGRAM:
+
+[Raw Student Complaint: text string]
+          |
+          v
++-------------------------------------------------------------+
+| 1. Text Preprocessing & Cleaning (Unit 1, Weeks 2 & 3)      |
+|    - Contraction expansion ("can't" -> "can not")           |
+|    - Campus abbreviation expansion ("hod" -> "head of dept")|
+|    - Regex alphanumeric filtering (preserves hyphens)       |
+|    - Negation-preserved stopword removal                    |
++------------------------------+------------------------------+
+                               |
+       +-----------------------+-----------------------+
+       |                       |                       |
+       v                       v                       v
++---------------------+ +---------------------+ +---------------------+
+| Category Classifier | | Priority & Distress | | Anti-Mischief Shield|
+| (Unit 2, Weeks 4-9) | | (Unit 1, Weeks 1, 3)| | (Unit 2, Weeks 6-7) |
+| - Sublinear TF-IDF  | | - VADER Polarity    | | - Claude Shannon    |
+|   (1,2 n-grams)     | |   Compound [-1, 1]  | |   Character Entropy |
+| - LogReg (C=2.0)    | | - Urgency Keywords  | | - Vowel/Cons Ratio  |
+| - 5-Class Probas    | | - 0-100 Score       | | - 0-100 Score       |
++----------+----------+ +----------+----------+ +----------+----------+
+           |                       |                       |
+           +-----------------------+-----------------------+
+                                   |
+                                   v
++-------------------------------------------------------------+
+| 2. Deduplication Engine (Unit 2, Week 5)                    |
+|    - L2-normalized Sublinear TF-IDF inner product dot prod  |
+|    - Cosine similarity against database tickets             |
+|    - Threshold tau = 0.45 (High: >=0.70, Mod: >=0.45)       |
+|    - Shared n-gram extraction (explains match)              |
++------------------------------+------------------------------+
+                               |
+                               v
++-------------------------------------------------------------+
+| 3. SQLite Persistence & REST API Dispatch                   |
+|    - campuspulse.db persistence                             |
+|    - Fast JSON response (<5 ms CPU latency)                 |
++-------------------------------------------------------------+
+
+EXACT DATA STRUCTURES PER STAGE:
+
+Stage 1: Preprocessing
+- Function: preprocess_complaint(text: str) -> str
+- Input: "wifi in hostel 3 isn't working hod!"
+- Transformation: Expands contractions -> Expands acronyms -> Preserves negation
+- Output: "wireless fidelity in hostel 3 is not working head of department"
+
+Stage 2A: Category Classification
+- Function: Pipeline.predict_proba(text: str)
+- Input: Preprocessed string
+- Transformation: Sublinear TF-IDF (1,2) matrix (1,521 features) -> LogReg logits
+- Output: Predicted category string ("Technical") and probability dictionary:
+  {'Academic': 0.012, 'Administrative': 0.018, 'Finance': 0.005,
+   'Infrastructure': 0.081, 'Technical': 0.884}
+
+Stage 2B: Priority & Student Distress Scoring
+- Function: PriorityScorer.score_priority(text: str, category: str)
+- Input: Raw text string and predicted category string
+- Transformation: VADER compound score [-1, 1] + Urgency offsets + Category offset
+- Output: Priority Score (float, 0 to 100) and Priority Level string
+  (Low: 0-35, Medium: 35-55, High: 55-75, Critical: 75-100)
+
+Stage 2C: Anti-Mischief Shield
+- Function: GenuinenessShield.evaluate(text: str)
+- Input: Raw text string
+- Transformation: Shannon character entropy H(X) + Vowel ratio + Spam regex
+- Output: is_genuine (bool) and genuineness_score (float, 0 to 100).
+  (Threshold: Score >= 40 is genuine; Score < 40 is flagged as spam/gibberish).
+
+Stage 3: Deduplication Engine
+- Function: ComplaintDeduplicator.find_duplicates(query: str, history: List[str])
+- Input: Preprocessed complaint string and list of database complaints
+- Transformation: Inner product dot product sum(q_j * d_ij) over L2 normalized TF-IDF
+- Output: List of dictionaries containing duplicate ID, similarity score (0.0 to 1.0),
+  and shared n-gram keyword triggers.
+
+
+================================================================================
+6. COMPREHENSIVE CODEBASE CROSS-REFERENCE INDEX
+================================================================================
+
+- CAMPUS_ABBREVIATIONS
+  File: preprocessing.py (Lines 38-55)
+  Syllabus Topic: Unit 1, Week 2 (Preprocessing & Vocabulary Normalization)
+
+- CONTRACTIONS_DICT
+  File: preprocessing.py (Lines 12-20)
+  Syllabus Topic: Unit 1, Week 3 (Casing, Contraction Expansion & Negation)
+
+- NEGATION_WORDS
+  File: preprocessing.py (Lines 22-30)
+  Syllabus Topic: Unit 1, Week 3 (Stop Word Removal & Preserving Polarity)
+
+- TfidfVectorizer(ngram_range=(1,2), sublinear_tf=True, norm='l2', min_df=2)
+  File: train.py (Lines 90-95)
+  Syllabus Topic: Unit 2, Week 4 (BoW Limits), Week 5 (Smooth IDF & L2 Norm),
+                  Weeks 6-7 (N-gram Features), Weeks 8-9 (Min-DF Sparsity Filtering)
+
+- cosine_similarity()
+  File: similarity.py (Lines 80-90)
+  Syllabus Topic: Unit 2, Week 5 (Vector Space Model, Co-occurrence Cosine Proof)
+
+- MultinomialNB(alpha=1.0)
+  File: train.py (Lines 110-125)
+  Syllabus Topic: Unit 2, Weeks 8-9 (Laplace Add-1 Smoothing Implementation)
+
+- LogisticRegression(C=2.0, penalty='l2', solver='lbfgs')
+  File: train.py (Lines 98-105)
+  Syllabus Topic: Unit 2, Week 11 (Cross-Entropy Loss Optimization, L-BFGS)
+
+- GenuinenessShield.calculate_entropy()
+  File: genuineness.py (Lines 42-60)
+  Syllabus Topic: Unit 2, Weeks 6-7 (Claude Shannon Information Entropy H(X))
+
+- PriorityScorer.extract_triggers()
+  File: priority.py (Lines 70-115)
+  Syllabus Topic: Unit 1, Week 1 (Sentiment Analysis) & Week 3 (Named Entity Recognition)
